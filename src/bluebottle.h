@@ -59,6 +59,7 @@
   #include "cgns.h"
 #endif
 #include "physalis.h"
+#include "scalar.h"
 
 /* MACROS */
 

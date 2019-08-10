@@ -26,6 +26,7 @@
 #include "bluebottle.h"
 #include "domain.h"
 #include "rng.h"
+#include "scalar.h"
 
 int use_restart;
 
@@ -162,9 +163,13 @@ void domain_read_input(void)
 #ifdef DOUBLE
   fret = fscanf(infile, "rho_f %lf\n", &rho_f);
   fret = fscanf(infile, "nu %lf\n", &nu);
+  fret = fscanf(infile, "sD %lf\n", &s_D);
+  fret = fscanf(infile, "sk %lf\n", &s_k);
 #else // single
   fret = fscanf(infile, "rho_f %f\n", &rho_f);
   fret = fscanf(infile, "nu %f\n", &nu);
+  fret = fscanf(infile, "sD %f\n", &s_D);
+  fret = fscanf(infile, "sk %f\n", &s_k);
 #endif
   mu = nu * rho_f;  // set dynamic viscosity
   fret = fscanf(infile, "\n");
@@ -174,21 +179,25 @@ void domain_read_input(void)
 #ifdef DOUBLE
   fret = fscanf(infile, "duration %lf\n", &duration);
   fret = fscanf(infile, "CFL %lf\n", &CFL);
+  fret = fscanf(infile, "SCALAR %d\n", &scalar_on);
   fret = fscanf(infile, "pp_max_iter %d\n", &pp_max_iter);
   fret = fscanf(infile, "pp_residual %lf\n", &pp_residual);
   fret = fscanf(infile, "lamb_max_iter %d\n", &lamb_max_iter);
   fret = fscanf(infile, "lamb_residual %lf\n", &lamb_residual);
   fret = fscanf(infile, "lamb_relax %lf\n", &lamb_relax);
   fret = fscanf(infile, "lamb_cut %lf\n", &lamb_cut);
+  fret = fscanf(infile, "s_lamb_cut %lf\n", &lamb_cut_scalar);
 #else
   fret = fscanf(infile, "duration %f\n", &duration);
   fret = fscanf(infile, "CFL %f\n", &CFL);
+  fret = fscanf(infile, "SCALAR %d\n", &scalar_on);
   fret = fscanf(infile, "pp_max_iter %d\n", &pp_max_iter);
   fret = fscanf(infile, "pp_residual %f\n", &pp_residual);
   fret = fscanf(infile, "lamb_max_iter %d\n", &lamb_max_iter);
   fret = fscanf(infile, "lamb_residual %f\n", &lamb_residual);
   fret = fscanf(infile, "lamb_relax %f\n", &lamb_relax);
   fret = fscanf(infile, "lamb_cut %f\n", &lamb_cut);
+  fret = fscanf(infile, "s_lamb_cut %f\n", &lamb_cut_scalar);
 #endif
   fret = fscanf(infile, "\n");
 
@@ -678,15 +687,107 @@ void domain_read_input(void)
   } else if (strcmp(buf, "PRECURSOR") == 0) {
     bc.wT = PRECURSOR;
     fret = fscanf(infile, "%lf %lf", &bc.wTDm, &bc.wTDa);
-    bc.wTD = 0; }
-  else {
+    bc.wTD = 0;
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+/* Read scalar boundary conditions */
+  fret = fscanf(infile, "SCALAR\n");
+
+  fret = fscanf(infile, "bc_s.sW %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sW = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sW = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sWD);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sW = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sWN);
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+  fret = fscanf(infile, "bc_s.sE %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sE = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sE = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sED);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sE = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sEN);
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+  fret = fscanf(infile, "bc_s.sS %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sS = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sS = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sSD);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sS = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sSN);
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+  fret = fscanf(infile, "bc_s.sN %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sN = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sN = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sND);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sN = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sNN);
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+  fret = fscanf(infile, "bc_s.sB %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sB = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sB = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sBD);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sB = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sBN);
+  } else {
+    fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
+    exit(EXIT_FAILURE);
+  }
+  fret = fscanf(infile, "\n");
+
+  fret = fscanf(infile, "bc_s.sT %s", buf);
+  if(strcmp(buf, "PERIODIC") == 0) {
+    bc_s.sT = PERIODIC;
+  } else if(strcmp(buf, "DIRICHLET") == 0) {
+    bc_s.sT = DIRICHLET;
+    fret = fscanf(infile, "%lf", &bc_s.sTD);
+  } else if(strcmp(buf, "NEUMANN") == 0) {
+    bc_s.sT = NEUMANN;
+    fret = fscanf(infile, "%lf", &bc_s.sTN);
+  } else {
     fprintf(stderr, "flow.config read error on line %d.\n", __LINE__);
     exit(EXIT_FAILURE);
   }
   fret = fscanf(infile, "\n");
 
   fret = fscanf(infile, "\n");
-
   /* Read initial flow condition */
   fret = fscanf(infile, "INITIAL CONDITION\n");
   fret = fscanf(infile, "init_cond %s", buf);
@@ -709,8 +810,8 @@ void domain_read_input(void)
       __LINE__, buf);
     exit(EXIT_FAILURE);
   }
-
   fret = fscanf(infile, "\n");
+  fret = fscanf(infile, "init_s %lf\n", &s_init);
 
   fret = fscanf(infile, "\n");
   /* Read outplane */
@@ -757,6 +858,7 @@ void domain_read_input(void)
   fret = fscanf(infile, "g.x %lf %lf\n", &g.xm, &g.xa);
   fret = fscanf(infile, "g.y %lf %lf\n", &g.ym, &g.ya);
   fret = fscanf(infile, "g.z %lf %lf\n", &g.zm, &g.za);
+  fret = fscanf(infile, "salpha %lf\n", &s_alpha);
 #else
   fret = fscanf(infile, "p_bc_tdelay %f\n", &p_bc_tdelay);
   fret = fscanf(infile, "gradP.x %f %f\n", &gradP.xm, &gradP.xa);
@@ -766,6 +868,7 @@ void domain_read_input(void)
   fret = fscanf(infile, "g.x %f %f\n", &g.xm, &g.xa);
   fret = fscanf(infile, "g.y %f %f\n", &g.ym, &g.ya);
   fret = fscanf(infile, "g.z %f %f\n", &g.zm, &g.za);
+  fret = fscanf(infile, "salpha %f\n", &s_alpha);
 #endif
   fret = fscanf(infile, "\n");
 

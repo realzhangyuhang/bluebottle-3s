@@ -477,3 +477,51 @@ real *_recv_Gfz_b;
 // Extra 
 long int cpumem;
 long int gpumem;
+
+// Scalar
+BC_s bc_s;
+real s_D;
+real s_k;
+real s_perturbation;
+real s_init;
+real s_alpha;
+real lamb_cut_scalar;
+int scalar_on;
+int coeff_stride_scalar;
+
+part_struct_scalar *parts_s;
+real *s0;
+real *s;
+real *conv0_s;
+real *conv_s;
+real *diff0_s;
+real *diff_s;
+real *anm_re;
+real *anm_im;
+real *anm_re0;
+real *anm_im0;
+real *anm_re00;
+real *anm_im00;
+
+real *anm_re_perturb;
+real *anm_im_perturb;
+
+part_struct_scalar **_parts_s;
+real **_s0;
+real **_s;
+real **_conv0_s;
+real **_conv_s;
+real **_diff0_s;
+real **_diff_s;
+real **_anm_re;
+real **_anm_im;
+real **_anm_re0;
+real **_anm_im0;
+real **_anm_re00;
+real **_anm_im00;
+
+real **_anm_re_perturb;
+real **_anm_im_perturb;
+
+int *_nn_scalar;
+int *_mm_scalar;
