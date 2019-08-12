@@ -2148,6 +2148,16 @@ void init_quiescent(void)
     f_z[i] = 0.;
     w_star[i] = 0.;
   }
+  if(scalar_on >= 1) {
+    for (i = 0; i < dom[rank].Gcc.s3b; i++) {
+      s[i] = s_init;
+      s0[i] = s_init;
+      conv_s[i] = 0.0;
+      conv0_s[i] = 0.0;
+      diff_s[i] = 0.0;
+      diff0_s[i] = 0.0;
+    }
+  }
 
 }
 

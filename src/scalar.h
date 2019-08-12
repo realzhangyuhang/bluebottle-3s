@@ -25,12 +25,7 @@
 
 #include "bluebottle.h"
 
-#define NNODES 26
-/*
- * PURPOSE
- *  Define the number of nodes used for the Lebedev quadrature scheme.
- ******
- */
+#define S_MAX_COEFFS 25
 
 typedef struct BC_s {
   int sW;
@@ -73,6 +68,12 @@ typedef struct part_struct_scalar {
   int order;
   int ncoeff;
   real dsdr[NNODES];
+  real anm_re[S_MAX_COEFFS];
+  real anm_im[S_MAX_COEFFS];
+  real anm_re0[S_MAX_COEFFS];
+  real anm_im0[S_MAX_COEFFS];
+  real anm_re00[S_MAX_COEFFS];
+  real anm_im00[S_MAX_COEFFS];
 } part_struct_scalar;
 /*
  * PURPOSE
@@ -163,13 +164,6 @@ void show_scalar_config(void);
 /*
  * FUNCTION
  * show the scalar.config file
- ****
- */
-
-void scalar_init(void);
-/*
- * FUNCTION
- * allocate and init the variable
  ****
  */
 

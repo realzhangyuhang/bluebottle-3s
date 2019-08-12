@@ -106,6 +106,11 @@ void parts_read_input(void)
   real spring_l;
   int translating;
   int rotating;
+  real tmp_s;
+  int tmp_update;
+  real tmp_cp;
+  real tmp_rs;
+  int tmp_s_order;
 
   real max_a = -1.;
   int check_x = 0;
@@ -151,6 +156,11 @@ void parts_read_input(void)
       fret = fscanf(infile, "spring_l %lf\n", &spring_l);
       fret = fscanf(infile, "translating %d\n", &translating);
       fret = fscanf(infile, "rotating %d\n", &rotating);
+      fret = fscanf(infile, "s %lf\n", &tmp_s);
+      fret = fscanf(infile, "update %d\n", &tmp_update);
+      fret = fscanf(infile, "cp %lf\n", &tmp_cp);
+      fret = fscanf(infile, "rs %lf\n", &tmp_rs);
+      fret = fscanf(infile, "s_order %d\n", &tmp_s_order);
 
       // Particle total mass and volume
       real tmp = 4./3. * PI * rbuf * rbuf * rbuf;
@@ -256,6 +266,8 @@ void parts_read_input(void)
   // Allocate particle structure on each subdomain
   parts = (part_struct*) malloc(nparts * sizeof(part_struct));
   cpumem += nparts * sizeof(part_struct);
+  parts_s = (part_struct_scalar*) malloc(nparts * sizeof(part_struct_scalar));
+  cpumem += nparts * sizeof(part_struct_scalar);
 
   if (NPARTS > 0) {
     // Reread config file, this time filling information
@@ -286,6 +298,11 @@ void parts_read_input(void)
       fret = fscanf(infile, "spring_l %lf\n", &spring_l);
       fret = fscanf(infile, "translating %d\n", &translating);
       fret = fscanf(infile, "rotating %d\n", &rotating);
+      fret = fscanf(infile, "s %lf\n", &tmp_s);
+      fret = fscanf(infile, "update %d\n", &tmp_update);
+      fret = fscanf(infile, "cp %lf\n", &tmp_cp);
+      fret = fscanf(infile, "rs %lf\n", &tmp_rs);
+      fret = fscanf(infile, "s_order %d\n", &tmp_s_order);
 
       // Calculate max order (where all procs can get it)
       int ncoeffs = 0;
@@ -351,6 +368,11 @@ void parts_read_input(void)
         parts[ncount].spring_l = spring_l;
         parts[ncount].translating = translating;
         parts[ncount].rotating = rotating;
+        parts_s[ncount].s = tmp_s;
+        parts_s[ncount].update = tmp_update;
+        parts_s[ncount].cp = tmp_cp;
+        parts_s[ncount].rs = tmp_rs;
+        parts_s[ncount].order = tmp_s_order;
         ncount++;
       }
 
@@ -522,6 +544,36 @@ void parts_init(void)
     parts[i].ncoll_wall = 0;
   }
 
+  if(scalar_on >= 1) {
+    for (int i = 0; i < nparts; i++) {
+
+      parts_s[i].s0 = parts_s[i].s;
+      parts_s[i].q = 0.0;
+
+      parts_s[i].ncoeff = 0;
+      // for each n, -n <= m <= n
+      for(int j = 0; j <= parts_s[i].order; j++) {
+        parts_s[i].ncoeff += 2*j + 1;
+      }
+      if(parts_s[i].ncoeff > S_MAX_COEFFS) {
+		printf("Maximum order is 4.");
+        exit(EXIT_FAILURE);
+      }
+
+      for(int j = 0; j < NNODES; j++) {
+        parts_s[i].dsdr[j] = 0.0;
+      }
+
+      for (int j = 0; j < S_MAX_COEFFS; j++) {
+        parts_s[i].anm_re[j] = 0.;
+        parts_s[i].anm_im[j] = 0.;
+        parts_s[i].anm_re0[j] = 0.;
+        parts_s[i].anm_im0[j] = 0.;
+        parts_s[i].anm_re00[j] = 0.;
+        parts_s[i].anm_im00[j] = 0.;
+	  }
+	}
+  }
   #ifdef DDEBUG
     parts_print();
   #endif // DDEBUG

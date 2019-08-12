@@ -138,6 +138,21 @@ void cuda_dom_malloc_host(void)
     cpumem += dom[rank].Gfy.s3b * sizeof(int);
   checkCudaErrors(cudaMallocHost(&flag_w, dom[rank].Gfz.s3b * sizeof(int)));
     cpumem += dom[rank].Gfz.s3b * sizeof(int);
+
+  if(scalar_on >= 1) {
+    checkCudaErrors(cudaMallocHost(&s, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMallocHost(&s0, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMallocHost(&conv_s, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMallocHost(&conv0_s, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMallocHost(&diff_s, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMallocHost(&diff0_s, dom[rank].Gcc.s3b * sizeof(real)));
+      cpumem += dom[rank].Gcc.s3b * sizeof(real);
+  }
 }
 
 extern "C"
@@ -429,6 +444,28 @@ void cuda_dom_malloc_dev(void)
   checkCudaErrors(cudaMemset(_recv_Gfz_s, 0., dom[rank].Gfz.s2_j * sizeof(real)));
   checkCudaErrors(cudaMemset(_recv_Gfz_t, 0., dom[rank].Gfz.s2_k * sizeof(real)));
   checkCudaErrors(cudaMemset(_recv_Gfz_b, 0., dom[rank].Gfz.s2_k * sizeof(real)));
+
+  if(scalar_on >= 1) {
+    checkCudaErrors(cudaMalloc(&_s, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMalloc(&_s0, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMalloc(&_conv_s, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMalloc(&_conv0_s, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMalloc(&_diff_s, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+    checkCudaErrors(cudaMalloc(&_diff0_s, dom[rank].Gcc.s3b * sizeof(real)));
+      gpumem += dom[rank].Gcc.s3b * sizeof(real);
+
+    checkCudaErrors(cudaMemset(_s, 0., dom[rank].Gcc.s3b * sizeof(real)));
+    checkCudaErrors(cudaMemset(_s0, 0., dom[rank].Gcc.s3b * sizeof(real)));
+    checkCudaErrors(cudaMemset(_conv_s, 0., dom[rank].Gcc.s3b * sizeof(real)));
+    checkCudaErrors(cudaMemset(_conv0_s, 0., dom[rank].Gcc.s3b * sizeof(real)));
+    checkCudaErrors(cudaMemset(_diff_s, 0., dom[rank].Gcc.s3b * sizeof(real)));
+    checkCudaErrors(cudaMemset(_diff0_s, 0., dom[rank].Gcc.s3b * sizeof(real)));
+  }
 }
 
 extern "C"

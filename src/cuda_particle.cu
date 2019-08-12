@@ -79,6 +79,11 @@ void cuda_part_malloc_dev(void)
       gpumem += bins.Gcc.s3b * sizeof(int);
     checkCudaErrors(cudaMalloc(&_bin_count, bins.Gcc.s3b * sizeof(int)));
       gpumem += bins.Gcc.s3b * sizeof(int);
+
+    if(scalar_on >= 1) {
+	  checkCudaErrors(cudaMalloc(&_parts_s, nparts * sizeof(part_struct_scalar)));
+        cpumem += nparts * sizeof(part_struct_scalar);
+	}
   }
 
   /* These arrays are allocated/free'd in their functions, but listed here for
@@ -105,6 +110,10 @@ void cuda_part_push(void)
   if (NPARTS > 0) {
     checkCudaErrors(cudaMemcpy(_parts, parts, nparts * sizeof(part_struct),
       cudaMemcpyHostToDevice));
+    if(scalar_on >= 1) {
+	  checkCudaErrors(cudaMemcpy(_parts_s, parts_s, nparts * sizeof(part_struct_scalar),
+        cudaMemcpyHostToDevice));
+	}
   }
 
   checkCudaErrors(cudaMemcpy(_phase, phase, dom[rank].Gcc.s3b * sizeof(int),
