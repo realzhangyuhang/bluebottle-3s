@@ -27,540 +27,207 @@ real s_D;
 real s_k;
 real s_perturbation;
 real s_init;
+real s_init_rand;
 real s_alpha;
 real lamb_cut_scalar;
-int scalar_on;
-int coeff_stride_scalar;
+int SCALAR;
+int s_ncoeffs_max;
 
-part_struct_scalar *parts_s;
 real *s0;
 real *s;
-real *conv0_s;
-real *conv_s;
-real *diff0_s;
-real *diff_s;
+real *s_conv0;
+real *s_conv;
+real *s_diff0;
+real *s_diff;
 
-real *anm_re;
-real *anm_im;
-real *anm_re0;
-real *anm_im0;
-real *anm_re00;
-real *anm_im00;
+real *_s0;
+real *_s;
+real *_s_conv0;
+real *_s_conv;
+real *_s_diff0;
+real *_s_diff;
 
-real *anm_re_perturb;
-real *anm_im_perturb;
+part_struct_scalar *s_parts;
+part_struct_scalar *_s_parts;
 
-part_struct_scalar **_parts_s;
-real **_s0;
-real **_s;
-real **_conv0_s;
-real **_conv_s;
-real **_diff0_s;
-real **_diff_s;
+part_struct_scalar *_send_s_parts_e;
+part_struct_scalar *_send_s_parts_w;
+part_struct_scalar *_send_s_parts_n;
+part_struct_scalar *_send_s_parts_s;
+part_struct_scalar *_send_s_parts_t;
+part_struct_scalar *_send_s_parts_b;
 
-real **_anm_re;
-real **_anm_im;
-real **_anm_re0;
-real **_anm_im0;
-real **_anm_re00;
-real **_anm_im00;
+part_struct_scalar *_recv_s_parts_e;
+part_struct_scalar *_recv_s_parts_w;
+part_struct_scalar *_recv_s_parts_n;
+part_struct_scalar *_recv_s_parts_s;
+part_struct_scalar *_recv_s_parts_t;
+part_struct_scalar *_recv_s_parts_b;
 
-real **_anm_re_perturb;
-real **_anm_im_perturb;
+MPI_Datatype mpi_s_part_struct;
 
 int *_nn_scalar;
 int *_mm_scalar;
 
-void scalar_read_input(void)
+void scalar_init_fields(void)
 {
-
-  int fret = 0;
-  fret = fret; // prevent compiler warning
-
-  cpumem = 0;
-  gpumem = 0;
-
-  // open configuration file for reading
-  char fname[FILE_NAME_SIZE] = "";
-  sprintf(fname, "%s/input/scalar.config", ROOT_DIR);
-  FILE *infile = fopen(fname, "r");
-  if(infile == NULL) {
-    fprintf(stderr, "Could not open file %s\n", fname);
-    fprintf(stderr, "No scalar field will be calculated.\n");
-    scalar_on = 0;
+  srand(time(0));
+  for (int i = 0; i < dom[rank].Gcc.s3b; i++) {
+    s[i] = s_init + s_init_rand * (2. * rand() / (real)RAND_MAX - 1.);
+    s0[i] = s[i];
+    s_conv[i] = 0.0;
+    s_conv0[i] = 0.0;
+    s_diff[i] = 0.0;
+    s_diff0[i] = 0.0;
   }
-  else {
-    scalar_on = 1;
-    char buf[CHAR_BUF_SIZE] = "";  // character read buffer
-    fret = fscanf(infile, "scalar_on %d\n", &scalar_on);
-    if (scalar_on == 1) {    
-      // read domain
-#ifdef DOUBLE
-      fret = fscanf(infile, "diffusivity %lf\n", &s_D);
-      fret = fscanf(infile, "conductivity %lf\n", &s_k);
-      fret = fscanf(infile, "perturbation solution %lf\n", &s_perturbation);
-      fret = fscanf(infile, "lamb_cut %lf\n", &lamb_cut_scalar);
-      fret = fscanf(infile, "initial_scalar %lf\n", &s_init);
-      fret = fscanf(infile, "alpha %lf\n", &s_alpha);
-#else
-      fret = fscanf(infile, "diffusivity %f\n", &s_D);
-      fret = fscanf(infile, "conductivity %f\n", &s_k);
-      fret = fscanf(infile, "perturbation solution %f\n", &s_perturbation);
-      fret = fscanf(infile, "lamb_cut %f\n", &lamb_cut_scalar);
-      fret = fscanf(infile, "initial_scalar %f\n", &s_init);
-      fret = fscanf(infile, "alpha %f\n", &s_alpha);
-#endif
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "BOUNDARY CONDITIONS\n");
-      fret = fscanf(infile, "bc_s.sW %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sW = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sW = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sWD);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sW = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sWN);
-      } else {
-        fprintf(stderr, "flow.config read error in W boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }
+}
 
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "bc_s.sE %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sE = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sE = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sED);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sE = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sEN); 
-      } else {
-        fprintf(stderr, "flow.config read error in E boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }      
+void scalar_part_init(void)
+{
+  for (int i = 0; i < nparts; i++) {
 
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "bc_s.sN %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sN = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sN = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sND);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sN = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sNN);
-      } else {
-        fprintf(stderr, "flow.config read error in N boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }
+    s_parts[i].s0 = s_parts[i].s;
+    s_parts[i].q = 0.0;
+    s_parts[i].iq = 0.0;
 
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "bc_s.sS %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sS = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sS = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sSD);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sS = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sSN);
-      } else {
-        fprintf(stderr, "flow.config read error in S boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }             
-
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "bc_s.sB %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sB = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sB = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sBD);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sB = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sBN);
-      } else {
-        fprintf(stderr, "flow.config read error in B boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }      
-
-      fret = fscanf(infile, "\n");
-      fret = fscanf(infile, "bc_s.sT %s", buf);
-      if(strcmp(buf, "PERIODIC") == 0) {
-        bc_s.sT = PERIODIC;
-      } else if(strcmp(buf, "DIRICHLET") == 0) {
-        bc_s.sT = DIRICHLET;
-        fret = fscanf(infile, "%lf", &bc_s.sTD);
-      } else if(strcmp(buf, "NEUMANN") == 0) {
-        bc_s.sT = NEUMANN;
-        fret = fscanf(infile, "%lf", &bc_s.sTN);
-      } else {
-        fprintf(stderr, "flow.config read error in T boundary condition.\n");
-        exit(EXIT_FAILURE);
-      }
-
+    s_parts[i].ncoeff = 0;
+    // for each n, -n <= m <= n
+    for(int j = 0; j <= s_parts[i].order; j++) {
+      s_parts[i].ncoeff += 2*j + 1;
     }
-  }
-}
-
-void show_scalar_config(void)
-{
-  if(scalar_on == 1) {
-    printf("Show scalar.config...\n");
-    printf("scalar_on is %d\n", scalar_on);
-    printf("diffusivity is %f\n", s_D);
-    printf("conductivity is %f\n", s_k);
-    printf("perturbation_solution is %f\n", s_perturbation);
-    printf("lamb_cut is %f\n", lamb_cut_scalar);
-    printf("initial_scalar is %f\n", s_init);
-    printf("alpha is %f\n", s_alpha);
-    printf("Boundary condition is:\n");
-    printf("  On W ");
-    if(bc_s.sW == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sWD);
-    else if(bc_s.sW == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sWN);
-    else if(bc_s.sW == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sW is wrong with value %d\n", bc_s.sW);
-  
-    printf("  On E ");
-    if(bc_s.sE == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sED);
-    else if(bc_s.sE == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sEN);
-    else if(bc_s.sE == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sE is wrong with value %d\n", bc_s.sE);
-
-    printf("  On N ");
-    if(bc_s.sN == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sND);
-    else if(bc_s.sN == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sNN);
-    else if(bc_s.sN == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sN is wrong with value %d\n", bc_s.sN);
-
-    printf("  On S ");
-    if(bc_s.sS == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sSD);
-    else if(bc_s.sS == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sSN);
-    else if(bc_s.sS == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sS is wrong with value %d\n", bc_s.sS);
-
-    printf("  On B ");
-    if(bc_s.sB == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sBD);
-    else if(bc_s.sB == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sBN);
-    else if(bc_s.sB == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sB is wrong with value %d\n", bc_s.sB);
-
-    printf("  On T ");
-    if(bc_s.sT == DIRICHLET) printf("DIRICHELT BOUNDARY CONDITION %f\n", bc_s.sTD);
-    else if(bc_s.sT == NEUMANN) printf("NEUMANN BOUNDARY CONDITION %f\n", bc_s.sTN);
-    else if(bc_s.sT == PERIODIC) printf("PERIODIC BOUNDARY CONDITION\n");
-    else printf(" bc_s.sT is wrong with value %d\n", bc_s.sT); 
-  }
-}
-
-void parts_scalar_show_config(void)
-{
-  if(scalar_on == 1) {
-    printf("Show part_scalar.config...\n");
-    for(int i = 0; i < nparts; i++) {
-      printf("  Particle %d:\n", i);
-      printf("    s = %f\n", parts_s[i].s0);
-      printf("    update = %d\n", parts_s[i].update);
-      printf("    cp = %f\n", parts_s[i].cp);
-      printf("    rs = %f\n", parts_s[i].rs);
-      printf("    order = %d\n", parts_s[i].order);
-    }
-  }
-}
-
-void scalar_clean(void)
-{
-  if(scalar_on == 1) {
-    free(s0);
-    free(s);
-    free(conv0_s);
-    free(conv_s);
-    free(diff0_s);
-    free(diff_s);
-  }
-}
-
-void scalar_out_restart(void)
-{
-  if(scalar_on == 1) {
-    // create the file
-    char path[FILE_NAME_SIZE] = "";
-    sprintf(path, "%s/input/restart_scalar.config", ROOT_DIR);
-    FILE *rest = fopen(path, "w");
-    if(rest == NULL) {
-      fprintf(stderr, "Could not open file restart.input.\n");
+    if(s_parts[i].ncoeff > S_MAX_COEFFS) {
+      printf("Maximum order is 4.");
       exit(EXIT_FAILURE);
     }
 
-    // flow field variable 
-    fwrite(s, sizeof(real), DOM.Gcc.s3b, rest);     
-    fwrite(s0, sizeof(real), DOM.Gcc.s3b, rest);
-    fwrite(conv_s, sizeof(real), DOM.Gcc.s3b, rest);
-    fwrite(conv0_s, sizeof(real), DOM.Gcc.s3b, rest);
-    fwrite(diff_s, sizeof(real), DOM.Gcc.s3b, rest);
-    fwrite(diff0_s, sizeof(real), DOM.Gcc.s3b, rest);
+    for(int j = 0; j < NNODES; j++) {
+      s_parts[i].dsdr[j] = 0.0;
+    }
 
-    // particle related variable
-    fwrite(parts_s, sizeof(part_struct_scalar), nparts, rest);
-    fwrite(&coeff_stride_scalar, sizeof(int), 1, rest);
-
-    fwrite(anm_re, sizeof(real), nparts*coeff_stride_scalar, rest);
-    fwrite(anm_im, sizeof(real), nparts*coeff_stride_scalar, rest);  
-    fwrite(anm_re0, sizeof(real), nparts*coeff_stride_scalar, rest);
-    fwrite(anm_im0, sizeof(real), nparts*coeff_stride_scalar, rest);
-    fwrite(anm_re00, sizeof(real), nparts*coeff_stride_scalar, rest);
-    fwrite(anm_im00, sizeof(real), nparts*coeff_stride_scalar, rest);
-    // close the file
-    fclose(rest);
+    for (int j = 0; j < S_MAX_COEFFS; j++) {
+      s_parts[i].anm_re[j] = 0.;
+      s_parts[i].anm_im[j] = 0.;
+      s_parts[i].anm_re0[j] = 0.;
+      s_parts[i].anm_im0[j] = 0.;
+      s_parts[i].anm_re00[j] = 0.;
+      s_parts[i].anm_im00[j] = 0.;
+	}
   }
 }
 
-void scalar_in_restart(void)
+void mpi_send_s_parts_i(void)
 {
-  if(scalar_on == 1) {
-    int fret = 0;
-    fret = fret; // prevent compiler warning
-    // open configuration file for reading
-    char fname[FILE_NAME_SIZE] = "";
-    sprintf(fname, "%s/input/restart_scalar.config", ROOT_DIR);
-    FILE *infile = fopen(fname, "r");
-    if(infile == NULL) {
-      fprintf(stderr, "Could not open file %s\n", fname);
-      exit(EXIT_FAILURE);
-    }  
+  // MPI Info hints
+  //  - no_locks: window is never locked, e.g. only active sync
+  //  - same_disp_unit: all use sizeof(part_struct)
+  //  can also use SAME_DISP_UNIT
+  MPI_Info no_locks;
+  MPI_Info_create(&no_locks);
+  MPI_Info_set(no_locks, "no_locks", "true");
+  MPI_Info_set(no_locks, "same_disp_unit", "true");
 
-    // flow field variable  
-    fret = fread(s, sizeof(real), DOM.Gcc.s3b, infile);
-    fret = fread(s0, sizeof(real), DOM.Gcc.s3b, infile);
-    fret = fread(conv_s, sizeof(real), DOM.Gcc.s3b, infile);
-    fret = fread(conv0_s, sizeof(real), DOM.Gcc.s3b, infile);
-    fret = fread(diff_s, sizeof(real), DOM.Gcc.s3b, infile);
-    fret = fread(diff0_s, sizeof(real), DOM.Gcc.s3b, infile);
+  // Open MPI Windows for _recv_parts{e,w}
+  MPI_Win_create(_recv_s_parts_e, nparts_recv[EAST] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_e);
+  MPI_Win_create(_recv_s_parts_w, nparts_recv[WEST] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_w);
 
-    // particle related variable
-    fret = fread(parts_s, sizeof(part_struct_scalar), nparts, infile);
-    fret = fread(&coeff_stride_scalar, sizeof(int), 1, infile);
+  // Fence and put _send_parts -> _recv_parts
+  MPI_Win_fence(0, parts_recv_win_e);
+  MPI_Win_fence(0, parts_recv_win_w);
 
-    fret = fread(anm_re, sizeof(real), nparts*coeff_stride_scalar, infile);
-    fret = fread(anm_im, sizeof(real), nparts*coeff_stride_scalar, infile);
-    fret = fread(anm_re0, sizeof(real), nparts*coeff_stride_scalar, infile);
-    fret = fread(anm_im0, sizeof(real), nparts*coeff_stride_scalar, infile);
-    fret = fread(anm_re00, sizeof(real), nparts*coeff_stride_scalar, infile);
-    fret = fread(anm_im00, sizeof(real), nparts*coeff_stride_scalar, infile);
- 
-    // close file
-    fclose(infile);
-  }
+  MPI_Put(_send_s_parts_e, nparts_send[EAST], mpi_s_part_struct, dom[rank].e,
+    0, nparts_send[EAST], mpi_s_part_struct, parts_recv_win_w);
+
+  MPI_Put(_send_s_parts_w, nparts_send[WEST], mpi_s_part_struct, dom[rank].w,
+    0, nparts_send[WEST], mpi_s_part_struct, parts_recv_win_e);
+
+  MPI_Win_fence(0, parts_recv_win_e);
+  MPI_Win_fence(0, parts_recv_win_w);
+
+  // Free
+  MPI_Win_free(&parts_recv_win_e);
+  MPI_Win_free(&parts_recv_win_w);
+
+  // Free the info we provided
+  MPI_Info_free(&no_locks);
 }
 
-void parts_read_input_scalar(void)
+void mpi_send_s_parts_j(void)
 {
-  if(scalar_on == 1) {
-    int i;
-    int fret = 0;
-    fret = fret; // prevent compiler warning
+  // MPI Info hints
+  //  - no_locks: window is never locked, e.g. only active sync
+  //  - same_disp_unit: all use sizeof(part_struct)
+  //  can also use SAME_DISP_UNIT
+  MPI_Info no_locks;
+  MPI_Info_create(&no_locks);
+  MPI_Info_set(no_locks, "no_locks", "true");
+  MPI_Info_set(no_locks, "same_disp_unit", "true");
 
-    // open configuration file for reading
-    char fname[FILE_NAME_SIZE] = "";
-    sprintf(fname, "%s/input/part_scalar.config", ROOT_DIR);
-    FILE *infile = fopen(fname, "r");
-    if(infile == NULL) {
-      printf("no part_scalar.config for scalar field\n");
-    }  
-   
-    // read particle list
-    parts_s = (part_struct_scalar*) malloc(nparts * sizeof(part_struct_scalar));
-    cpumem += nparts * sizeof(part_struct_scalar);
+  // Open MPI Windows for _recv_parts{n,s}
+  MPI_Win_create(_recv_s_parts_n, nparts_recv[NORTH] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_n);
+  MPI_Win_create(_recv_s_parts_s, nparts_recv[SOUTH] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_s);
 
-    // read nparts particles
-    for(i = 0; i < nparts; i++) {
-#ifdef DOUBLE
-      fret = fscanf(infile, "s %lf\n", &parts_s[i].s0);
-      fret = fscanf(infile, "update %d\n", &parts_s[i].update);
-      fret = fscanf(infile, "cp %lf\n", &parts_s[i].cp);
-      fret = fscanf(infile, "rs %lf\n", &parts_s[i].rs);
-#else
-      fret = fscanf(infile, "s %f\n", &parts_s[i].s0);
-      fret = fscanf(infile, "update %d\n", &parts_s[i].update);
-      fret = fscanf(infile, "cp %f\n", &parts_s[i].cp);
-      fret = fscanf(infile, "rs %f\n", &parts_s[i].rs);
-#endif
-      fret = fscanf(infile, "order %d\n", &parts_s[i].order);
-      fret = fscanf(infile, "\n");
-    }
-    fclose(infile);
-  }
-} 
+  // Fence and put _send_parts -> _recv_parts
+  MPI_Win_fence(0, parts_recv_win_n);
+  MPI_Win_fence(0, parts_recv_win_s);
 
-void parts_read_input_scalar_restart(void)
-{
-  if(scalar_on == 1) {
-    int i;
-    int fret = 0;
-    fret = fret; // prevent compiler warning
-    
-    real tmp1 = 0.0; // temporal value
-    int tmp2 = 0; // temporal value
-    int update = 0; // if anything is changed update = 1 
+  MPI_Put(_send_s_parts_n, nparts_send[NORTH], mpi_s_part_struct, dom[rank].n,
+    0, nparts_send[NORTH], mpi_s_part_struct, parts_recv_win_s);
+  MPI_Put(_send_s_parts_s, nparts_send[SOUTH], mpi_s_part_struct, dom[rank].s,
+    0, nparts_send[SOUTH], mpi_s_part_struct, parts_recv_win_n);
 
-    // open configuration file for reading
-    char fname[FILE_NAME_SIZE] = "";
-    sprintf(fname, "%s/input/part_scalar.config", ROOT_DIR);
-    FILE *infile = fopen(fname, "r");
-    if(infile == NULL) {
-      printf("no part_scalar.config for scalar field\n");
-    }
+  MPI_Win_fence(0, parts_recv_win_n);
+  MPI_Win_fence(0, parts_recv_win_s);
 
-    printf("\n   Reading part_scalar.config for any updated input ...\n");
-    // read nparts particles
-    for(i = 0; i < nparts; i++) {
-#ifdef DOUBLE
-      fret = fscanf(infile, "s %lf\n", &tmp1);
-      fret = fscanf(infile, "update %d\n", &tmp2);
-      if(tmp2 != parts_s[i].update) {
-        printf("    particle[%d].update has been updated!\n", i);
-        parts_s[i].update = tmp2;
-        update = 1;
-      }
-      fret = fscanf(infile, "cp %lf\n", &tmp1);
-      if(tmp1 != parts_s[i].cp){
-        printf("    particle[%d].cp  has been updated!\n", i);
-        parts_s[i].cp = tmp1;
-        update = 1; 
-      }
-      fret = fscanf(infile, "rs %lf\n", &tmp1);
-      if(tmp1 != parts_s[i].rs){
-        printf("    particle[%d].rs  has been updated!\n", i);
-        parts_s[i].cp = tmp1;
-        update = 1;
-      }
-#else
-      fret = fscanf(infile, "s %f\n", &tmp1);
-      fret = fscanf(infile, "update %d\n", &parts_s[i].update);
-      if(tmp2 != parts_s[i].update) {
-        printf("    particle[%d].update has been updated!\n", i);
-        parts_s[i].update = tmp2;
-        update = 1;
-      }
-      fret = fscanf(infile, "cp %f\n", &parts_s[i].cp);
-      if(tmp1 != parts_s[i].cp){
-        printf("    particle[%d].cp  has been updated!\n", i);
-        parts_s[i].cp = tmp1;
-        update = 1;
-      }
-      fret = fscanf(infile, "rs %f\n", &parts_s[i].rs);
-      if(tmp1 != parts_s[i].rs){
-        printf("    particle[%d].rs  has been updated!\n", i);
-        parts_s[i].cp = tmp1;
-        update = 1;
-      }
-#endif
-      fret = fscanf(infile, "order %d\n", &tmp2);
-      if(tmp2 != parts_s[i].order) {
-        printf("    particle[%d].order cann't be changed!\n", i);
-      }
-      fret = fscanf(infile, "\n");
-    }
-    fclose(infile);
+  // Free
+  MPI_Win_free(&parts_recv_win_n);
+  MPI_Win_free(&parts_recv_win_s);
 
-    if(update == 1)parts_scalar_show_config();
-  }
+  // Free the info we provided
+  MPI_Info_free(&no_locks);
 }
 
-
-
-void parts_init_scalar(void)
+void mpi_send_s_parts_k(void)
 {
-  coeff_stride_scalar = 0;
-  if(scalar_on == 1){
-    for(int i = 0; i < nparts; i++) {
-      parts_s[i].s = parts_s[i].s0;
-      parts_s[i].q = 0.0;
-      parts_s[i].ncoeff = 0;
-      // for each n, -n<=m<=n
-      for(int j = 0; j <= parts_s[i].order; j++) {
-        parts_s[i].ncoeff += 2*j + 1;
-      }
-      if(parts_s[i].ncoeff > coeff_stride_scalar) {
-        coeff_stride_scalar = parts_s[i].ncoeff;
-      }
-      for(int j = 0; j < NNODES; j++) {
-        parts_s[i].dsdr[j] = 0.0;
-      }
-    }
-    // allocate lamb's coefficients on host
-    anm_re = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_im = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_re0 = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_im0 = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_re00 = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_im00 = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
- 
-    anm_re_perturb = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
-    anm_im_perturb = (real*) malloc(coeff_stride_scalar * nparts * sizeof(real));
-    cpumem += coeff_stride_scalar * nparts * sizeof(real);
- 
-    // initialize lamb's coefficents
-    for(int i = 0; i < coeff_stride_scalar * nparts; i++) {
-      anm_re[i] = 0.0;
-      anm_im[i] = 0.0;
-      anm_re0[i] = 0.0;
-      anm_im0[i] = 0.0;
-      anm_re00[i] = 0.0;
-      anm_im00[i] = 0.0;
-      
-      anm_re_perturb[i] = 0.0;
-      anm_im_perturb[i] = 0.0;
-    }
+  // MPI Info hints
+  //  - no_locks: window is never locked, e.g. only active sync
+  //  - same_disp_unit: all use sizeof(part_struct)
+  //  can also use SAME_DISP_UNIT
+  MPI_Info no_locks;
+  MPI_Info_create(&no_locks);
+  MPI_Info_set(no_locks, "no_locks", "true");
+  MPI_Info_set(no_locks, "same_disp_unit", "true");
 
-/*
-    // allocate the lebsque coefficents table and lebsque nodes infor
-    nn_scalar = (real*) malloc(25 * sizeof(int));
-    cpumem += 25 * sizeof(int);
-    mm_scalar = (real*) malloc(25 * sizeof(int));
-    cpumem += 25 * sizeof(int);
+  // Open MPI Windows for _recv_parts{t,b}
+  MPI_Win_create(_recv_s_parts_t, nparts_recv[TOP] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_t);
+  MPI_Win_create(_recv_s_parts_b, nparts_recv[BOTTOM] * sizeof(part_struct_scalar),
+    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_b);
 
-    // initialize coefficients table
-    int nn_scalar[25] = {0,
-                  1, 1, 1,
-                  2, 2, 2, 2, 2,
-                  3, 3, 3, 3, 3, 3, 3,
-                  4, 4, 4, 4, 4, 4, 4, 4, 4};
-    int mm_scalar[25] = {0,
-                  -1, 0, 1,
-                  -2, -1, 0, 1, 2,
-                  -3, -2, -1, 0, 1, 2, 3,
-                  -4, -3, -2, -1, 0, 1, 2, 3, 4};
+  // Fence and put _send_parts -> _recv_parts
+  MPI_Win_fence(0, parts_recv_win_t);
+  MPI_Win_fence(0, parts_recv_win_b);
 
-    nn_scalar = nn_scalar;
-    mm_scalar = mm_scalar;
-*/
-  }
+  MPI_Put(_send_s_parts_t, nparts_send[TOP], mpi_s_part_struct, dom[rank].t,
+    0, nparts_send[TOP], mpi_s_part_struct, parts_recv_win_b);
+  MPI_Put(_send_s_parts_b, nparts_send[BOTTOM], mpi_s_part_struct, dom[rank].b,
+    0, nparts_send[BOTTOM], mpi_s_part_struct, parts_recv_win_t);
+
+  MPI_Win_fence(0, parts_recv_win_t);
+  MPI_Win_fence(0, parts_recv_win_b);
+
+  // Free
+  MPI_Win_free(&parts_recv_win_t);
+  MPI_Win_free(&parts_recv_win_b);
+
+  // Free the info we provided
+  MPI_Info_free(&no_locks);
 }
 
-void parts_scalar_clean(void)
+void scalar_part_free(void)
 {
-  if(scalar_on == 1) {
-    free(parts_s);
-    free(anm_re);
-    free(anm_im);
-    free(anm_re0);
-    free(anm_im0);
-    free(anm_re00);
-    free(anm_im00);
-
-    free(anm_re_perturb);
-    free(anm_im_perturb);
-  }
+  free(s_parts);
 }
-
-

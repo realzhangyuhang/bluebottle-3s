@@ -2749,6 +2749,18 @@ void cuda_blocks_init(void);
  ******
  */
 
+/****f* bluebottle/cuda_blocks_write()
+ * NAME
+ *  cuda_blocks_write()
+ * USAGE
+ */
+void cuda_blocks_write(void);
+/*
+ * FUNCTION
+ *  Write block sizes to debug file.
+ ******
+ */
+
 /****f* bluebottle/cuda_dom_BC()
  * NAME
  *  cuda_dom_BC()

@@ -772,6 +772,66 @@ void mpi_parts_init(void)
 
   MPI_Type_commit(&mpi_part_struct);
 
+  // define a datatype to include scalar info
+  #define S_NMEMS 16              // number of members in part_struct
+
+  int s_block_lengths[S_NMEMS] = {1,                // real s0
+                                  1,                // real s
+                                  1,                // int update
+                                  1,                // real rs
+                                  1,                // real q
+                                  1,                // real iq
+                                  1,                // real cp
+                                  1,                // int order
+                                  1,                // int ncoeff
+                                  NNODES,           // real dsdr[NNODES]
+                                  S_MAX_COEFFS,     // real anm_re[S_MAX_COEFFS]
+                                  S_MAX_COEFFS,     // real anm_im[S_MAX_COEFFS];
+                                  S_MAX_COEFFS,     // real anm_re0[S_MAX_COEFFS];
+                                  S_MAX_COEFFS,     // real anm_im0[S_MAX_COEFFS];
+                                  S_MAX_COEFFS,     // real anm_re00[S_MAX_COEFFS];
+                                  S_MAX_COEFFS};    // real anm_im00[S_MAX_COEFFS];
+
+  MPI_Datatype s_types[S_NMEMS] = {mpi_real,          // real s0
+                                   mpi_real,          // real s
+                                   MPI_INT,           // int update
+                                   mpi_real,          // real rs
+                                   mpi_real,          // real q
+                                   mpi_real,          // real iq
+                                   mpi_real,          // real cp
+                                   MPI_INT,           // int order
+                                   MPI_INT,           // int ncoeff
+                                   mpi_real,          // real dsdr[NNODES]
+                                   mpi_real,          // real anm_re[S_MAX_COEFFS]
+                                   mpi_real,          // real anm_im[S_MAX_COEFFS];
+                                   mpi_real,          // real anm_re0[S_MAX_COEFFS];
+                                   mpi_real,          // real anm_im0[S_MAX_COEFFS];
+                                   mpi_real,          // real anm_re00[S_MAX_COEFFS];
+                                   mpi_real};         // real anm_im00[S_MAX_COEFFS];
+
+  MPI_Aint s_offsets[S_NMEMS];
+
+  s_offsets[0] = offsetof(part_struct_scalar, s0);
+  s_offsets[1] = offsetof(part_struct_scalar, s);
+  s_offsets[2] = offsetof(part_struct_scalar, update);
+  s_offsets[3] = offsetof(part_struct_scalar, rs);
+  s_offsets[4] = offsetof(part_struct_scalar, q);
+  s_offsets[5] = offsetof(part_struct_scalar, iq);
+  s_offsets[6] = offsetof(part_struct_scalar, cp);
+  s_offsets[7] = offsetof(part_struct_scalar, order);
+  s_offsets[8] = offsetof(part_struct_scalar, ncoeff);
+  s_offsets[9] = offsetof(part_struct_scalar, dsdr);
+  s_offsets[10] = offsetof(part_struct_scalar, anm_re);
+  s_offsets[11] = offsetof(part_struct_scalar, anm_im);
+  s_offsets[12] = offsetof(part_struct_scalar, anm_re0);
+  s_offsets[13] = offsetof(part_struct_scalar, anm_im0);
+  s_offsets[14] = offsetof(part_struct_scalar, anm_re00);
+  s_offsets[15] = offsetof(part_struct_scalar, anm_im00);
+
+  int s_n_members = S_NMEMS;
+  MPI_Type_create_struct(s_n_members, s_block_lengths, s_offsets, s_types, &mpi_s_part_struct);
+  MPI_Type_commit(&mpi_s_part_struct);
+
   /* Create windows */
   MPI_Info no_locks;
   MPI_Info_create(&no_locks);

@@ -266,7 +266,7 @@ void parts_read_input(void)
   // Allocate particle structure on each subdomain
   parts = (part_struct*) malloc(nparts * sizeof(part_struct));
   cpumem += nparts * sizeof(part_struct);
-  parts_s = (part_struct_scalar*) malloc(nparts * sizeof(part_struct_scalar));
+  s_parts = (part_struct_scalar*) malloc(nparts * sizeof(part_struct_scalar));
   cpumem += nparts * sizeof(part_struct_scalar);
 
   if (NPARTS > 0) {
@@ -278,6 +278,7 @@ void parts_read_input(void)
     fret = fscanf(infile, "(l/a) %lf\n", &interaction_length_ratio);
 
     ncoeffs_max = -1;
+    s_ncoeffs_max = -1;
 
     for (i = 0; i < NPARTS; i++) {
       fret = fscanf(infile, "\n");
@@ -311,6 +312,11 @@ void parts_read_input(void)
       }
       if (ncoeffs > ncoeffs_max) ncoeffs_max = ncoeffs;
 
+      int s_ncoeffs = 0;
+      for(int j = 0; j <= tmp_s_order; j++) {
+        s_ncoeffs += 2*j + 1;
+      }
+      if (s_ncoeffs > s_ncoeffs_max) s_ncoeffs_max = s_ncoeffs;
 
       // Check if particle center is within subdomain
       // PERIODIC:
@@ -368,11 +374,11 @@ void parts_read_input(void)
         parts[ncount].spring_l = spring_l;
         parts[ncount].translating = translating;
         parts[ncount].rotating = rotating;
-        parts_s[ncount].s = tmp_s;
-        parts_s[ncount].update = tmp_update;
-        parts_s[ncount].cp = tmp_cp;
-        parts_s[ncount].rs = tmp_rs;
-        parts_s[ncount].order = tmp_s_order;
+        s_parts[ncount].s = tmp_s;
+        s_parts[ncount].update = tmp_update;
+        s_parts[ncount].cp = tmp_cp;
+        s_parts[ncount].rs = tmp_rs;
+        s_parts[ncount].order = tmp_s_order;
         ncount++;
       }
 
@@ -544,36 +550,6 @@ void parts_init(void)
     parts[i].ncoll_wall = 0;
   }
 
-  if(scalar_on >= 1) {
-    for (int i = 0; i < nparts; i++) {
-
-      parts_s[i].s0 = parts_s[i].s;
-      parts_s[i].q = 0.0;
-
-      parts_s[i].ncoeff = 0;
-      // for each n, -n <= m <= n
-      for(int j = 0; j <= parts_s[i].order; j++) {
-        parts_s[i].ncoeff += 2*j + 1;
-      }
-      if(parts_s[i].ncoeff > S_MAX_COEFFS) {
-		printf("Maximum order is 4.");
-        exit(EXIT_FAILURE);
-      }
-
-      for(int j = 0; j < NNODES; j++) {
-        parts_s[i].dsdr[j] = 0.0;
-      }
-
-      for (int j = 0; j < S_MAX_COEFFS; j++) {
-        parts_s[i].anm_re[j] = 0.;
-        parts_s[i].anm_im[j] = 0.;
-        parts_s[i].anm_re0[j] = 0.;
-        parts_s[i].anm_im0[j] = 0.;
-        parts_s[i].anm_re00[j] = 0.;
-        parts_s[i].anm_im00[j] = 0.;
-	  }
-	}
-  }
   #ifdef DDEBUG
     parts_print();
   #endif // DDEBUG
@@ -729,6 +705,58 @@ void parts_print(void)
     fprintf(outfile, "parts[%d].chinm_im:\n\t", n);
     for (int i = 0; i < MAX_COEFFS; i++) {
       fprintf(outfile, " %lf", parts[n].chinm_im[i]);
+    }
+    fprintf(outfile, "\n");
+
+    fprintf(outfile, "s_parts[%d].s0 = %lf\n", n, s_parts[n].s0);
+    fprintf(outfile, "s_parts[%d].s = %lf\n", n, s_parts[n].s);
+    fprintf(outfile, "s_parts[%d].update = %d\n", n, s_parts[n].update);
+    fprintf(outfile, "s_parts[%d].rs = %lf\n", n, s_parts[n].rs);
+    fprintf(outfile, "s_parts[%d].q = %lf\n", n, s_parts[n].q);
+    fprintf(outfile, "s_parts[%d].iq = %lf\n", n, s_parts[n].iq);
+    fprintf(outfile, "s_parts[%d].cp = %lf\n", n, s_parts[n].cp);
+    fprintf(outfile, "s_parts[%d].order = %d\n", n, s_parts[n].order);
+    fprintf(outfile, "s_parts[%d].ncoeff = %d\n", n, s_parts[n].ncoeff);
+
+    fprintf(outfile, "s_parts[%d].dsdr:\n\t", n);
+    for (int i = 0; i < NNODES; i++) {
+      fprintf(outfile, " %lf", s_parts[n].dsdr[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_re:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_re[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_im:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_im[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_re0:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_re0[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_im0:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_im0[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_re00:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_re00[i]);
+    }
+    fprintf(outfile, "\n");
+    
+    fprintf(outfile, "s_parts[%d].anm_im00:\n\t", n);
+    for (int i = 0; i < S_MAX_COEFFS; i++) {
+      fprintf(outfile, " %lf", s_parts[n].anm_im00[i]);
     }
     fprintf(outfile, "\n");
     

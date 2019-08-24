@@ -40,6 +40,10 @@ int main(int argc, char *argv[])
   /* Allocate domain memory on host and device */
   cuda_dom_malloc_host();
   cuda_dom_malloc_dev();
+  if (SCALAR >= 1) {
+    cuda_scalar_malloc_host();
+    cuda_scalar_malloc_dev();
+  }
 
   /* Initialize cuda threads/blocks and MPI structures */
   cuda_blocks_init();
@@ -47,6 +51,9 @@ int main(int argc, char *argv[])
 
   /* Initialize fields from boundary and initial conditions */
   domain_init_fields();
+  if (SCALAR >= 1) {
+    scalar_init_fields();
+  }
 
   /* Initialize particles and bins */
   parts_read_input();
@@ -55,7 +62,7 @@ int main(int argc, char *argv[])
     init_bins();
     mpi_parts_init();
   }
-  
+
   /* Initialize output writers */
   #ifndef CGNS_OUTPUT
     if (rank == 0) {
@@ -82,18 +89,31 @@ int main(int argc, char *argv[])
     }
   } else {
     parts_init();
+    if (SCALAR >= 1) {
+	  scalar_part_init();
+	}
   }
 
   /* Allocate particles on device */
   cuda_part_malloc_dev();
   cuda_part_push();
+  if (SCALAR >= 1) {
+    cuda_scalar_part_malloc_dev();
+    cuda_scalar_part_push();
+  }
   count_mem();
 
   /* Fill ghost bins for first time step */
   if (NPARTS > 0) {
-    cuda_transfer_parts_i();
-    cuda_transfer_parts_j();
-    cuda_transfer_parts_k();
+	if (SCALAR >= 1) {
+	  cuda_scalar_transfer_parts_i();
+	  cuda_scalar_transfer_parts_j();
+	  cuda_scalar_transfer_parts_k();
+	} else {
+      cuda_transfer_parts_i();
+      cuda_transfer_parts_j();
+      cuda_transfer_parts_k();
+    }
   }
 
   /* Push initial fields to device and exchange initial condition */
@@ -102,6 +122,10 @@ int main(int argc, char *argv[])
   mpi_cuda_exchange_Gfx(_u);
   mpi_cuda_exchange_Gfy(_v);
   mpi_cuda_exchange_Gfz(_w);
+  //if (SCALAR >= 1) {
+	//cuda_scalar_push();
+    //mpi_cuda_exchange_Gcc(_s);
+  //}
 
   /* Build phase, phase_shell, and flag variables */
   cuda_build_cages();
@@ -115,6 +139,10 @@ int main(int argc, char *argv[])
   mpi_cuda_exchange_Gfx(_u);
   mpi_cuda_exchange_Gfy(_v);
   mpi_cuda_exchange_Gfz(_w);
+  //if (SCALAR >= 1) {
+	//cuda_scalar_BC();
+    //mpi_cuda_exchange_Gcc(_s);
+  //}
 
   /* Initialize jacobi preconditioner */
   cuda_PP_init_jacobi_preconditioner();
@@ -161,6 +189,9 @@ int main(int argc, char *argv[])
 
     /* Compute forcing and velocity boundary conditions */
     cuda_compute_forcing();
+    if (SCALAR >= 1) {
+	  cuda_compute_boussinesq();
+	}
     cuda_compute_turb_forcing();
     compute_vel_BC();
 
@@ -287,9 +318,15 @@ int main(int argc, char *argv[])
     /* Move particles */
     if (NPARTS > 0) {
       cuda_update_part_position();
-      cuda_transfer_parts_i();
-      cuda_transfer_parts_j();
-      cuda_transfer_parts_k();
+      if (SCALAR >= 1) {
+		cuda_scalar_transfer_parts_i();
+		cuda_scalar_transfer_parts_j();
+		cuda_scalar_transfer_parts_k();
+	  } else {
+	    cuda_transfer_parts_i();
+        cuda_transfer_parts_j();
+        cuda_transfer_parts_k();
+	  }
     }
 
     /* Rebuild cages with new positions */
@@ -312,7 +349,7 @@ int main(int argc, char *argv[])
     fflush(stdout);
   }
 
-  if (rank == 0) { 
+  if (rank == 0) {
     if (ttime > duration) {
       printf("\nEXPD: The simulation has reached its specified duration\n");
     }
@@ -323,6 +360,10 @@ int main(int argc, char *argv[])
 #endif // TEST
 
   /* Free all cuda-allocated memory (device and pinned on host) */
+  if (SCALAR >= 1) {
+    cuda_scalar_free();
+    cuda_scalar_part_free();
+  }
   cuda_part_free();
   cuda_dom_free();
 
@@ -332,6 +373,9 @@ int main(int argc, char *argv[])
   /* Free host memory */
   domain_free();
   part_free();
+  if (SCALAR >= 1) {
+    scalar_part_free();
+  }
 
   /* End MPI */
   mpi_end();

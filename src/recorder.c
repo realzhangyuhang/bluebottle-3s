@@ -109,13 +109,23 @@ void recorder_out(void)
     // Pull domain
     cuda_dom_pull();
     cuda_dom_pull_phase();
+    if (SCALAR >= 1) {
+	  cuda_scalar_pull();
+	}
     #ifdef DDEBUG // pull more information
       cuda_dom_pull_debug();
+      if (SCALAR >= 1) {
+	    cuda_scalar_pull_debug();
+	  }
     #endif // DDEBUG
     if (NPARTS > 0) {
-      cuda_part_pull(); // Because we need to map phase[p] to parts[p].N
+      if (SCALAR >= 1) {
+	    cuda_part_pull_with_scalar();
+	  } else {
+		cuda_part_pull(); // Because we need to map phase[p] to parts[p].N
+	  }
     }
-  
+
     // Write (more checks take place inside these functions)
     #ifdef CGNS_OUTPUT
       cgns_recorder_flow_write();
@@ -130,10 +140,18 @@ void recorder_out(void)
       //cuda_dom_pull();
       //cuda_dom_pull_debug();
       //cuda_dom_pull_phase();
-      cuda_part_pull();       // for central particles
+      if (SCALAR >= 1) {
+	    cuda_part_pull_with_scalar();
+      } else {
+		cuda_part_pull();       // for central particles
+	  }
     #else
-      cuda_part_pull();
-      //cuda_part_pull_debug(); // for all particles; not implemented
+      if (SCALAR >= 1) {
+		cuda_part_pull_with_scalar();
+	  } else {
+		cuda_part_pull();
+		//cuda_part_pull_debug(); // for all particles; not implemented
+	  }
     #endif // DDEBUG
 
     #ifdef CGNS_OUTPUT
@@ -348,7 +366,14 @@ int restart_recorder_write(void)
     cuda_dom_pull_phase();
     cuda_dom_pull_debug();
     cuda_dom_pull_restart();
-    cuda_part_pull();
+    if (SCALAR >= 1) {
+	  cuda_scalar_pull();
+	  cuda_scalar_pull_debug();
+	  cuda_scalar_pull_restart();
+	  cuda_part_pull_with_scalar();
+	} else {
+      cuda_part_pull();
+    }
 
     printf("N%d >> Writing restart file (reached requested wall time) (t = %e)...\n",
       rank, ttime);
@@ -362,7 +387,14 @@ int restart_recorder_write(void)
     cuda_dom_pull_phase();
     cuda_dom_pull_debug();
     cuda_dom_pull_restart();
-    cuda_part_pull();
+    if (SCALAR >= 1) {
+	  cuda_scalar_pull();
+	  cuda_scalar_pull_debug();
+	  cuda_scalar_pull_restart();
+      cuda_part_pull_with_scalar();
+    } else {
+      cuda_part_pull();
+    }
 
     printf("N%d >> Writing restart file (sim completed) (t = %e)...\n", rank,
       ttime);

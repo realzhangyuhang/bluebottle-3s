@@ -91,168 +91,90 @@ typedef struct part_struct_scalar {
  * * dsdr is the scalar gradient at particle surface for Lebsque nodes
 */
 
-extern part_struct_scalar *parts_s;
-
-extern part_struct_scalar **_parts_s;
-
-extern int coeff_stride_scalar;
-/*
- * stores the maximum order for all particles for lamb solution, equal to max index n in Ynm
- */
-
-extern real lamb_cut_scalar; // lamb cut-off for scalar calculation
-
-extern real s_init; //initial temperature for fluid
-
-extern real s_alpha; //coefficient of thermal expansion, used in bousinesq assumption, alpha*gravity*(T-T_ref)
-
 extern real s_D; // thermal diffusivity, used in diffusivity term, D\nabla_T^2
-
 extern real s_k; //thermal conductivity of fluid, s_k = s_D*\rho_f*c_pp
+extern real s_alpha; //coefficient of thermal expansion, used in bousinesq assumption, alpha*gravity*(T-T_ref)
+extern int SCALAR; // SCALAR >= 1: calculate the temperature field
+extern real lamb_cut_scalar; // lamb cut-off for scalar calculation
+extern real s_init; //initial temperature for fluid
+extern real s_init_rand;
 
 extern real s_perturbation; // the perturbation solution for T by including the effect of rapidly changing particle surface temperature. See JCP paper.
+extern int s_ncoeffs_max;
 
-extern int scalar_on; // scalar_on = 1: calculate the temperature field
+extern real *s0;
+extern real *s;
+extern real *s_conv0;
+extern real *s_conv;
+extern real *s_diff0;
+extern real *s_diff;
 
+extern real *_s0;
+extern real *_s;
+extern real *_s_conv0;
+extern real *_s_conv;
+extern real *_s_diff0;
+extern real *_s_diff;
 
-extern real *s0; //previous step fluid temperature
-extern real *s; // current step fluid temperature
-extern real *conv0_s;
-extern real *conv_s;
-extern real *diff0_s;
-extern real *diff_s;
+extern part_struct_scalar *s_parts;
+extern part_struct_scalar *_s_parts;
 
-extern real **_s0;
-extern real **_s;
-extern real **_conv0_s;
-extern real **_conv_s;
-extern real **_diff0_s;
-extern real **_diff_s;
+extern part_struct_scalar *_send_s_parts_e;
+extern part_struct_scalar *_send_s_parts_w;
+extern part_struct_scalar *_send_s_parts_n;
+extern part_struct_scalar *_send_s_parts_s;
+extern part_struct_scalar *_send_s_parts_t;
+extern part_struct_scalar *_send_s_parts_b;
 
-extern real *anm_re; // lamb coefficients
-extern real *anm_im;
-extern real *anm_re0;
-extern real *anm_im0;
-extern real *anm_re00;
-extern real *anm_im00;
-extern real *anm_re_perturb;
-extern real *anm_im_perturb;
+extern part_struct_scalar *_recv_s_parts_e;
+extern part_struct_scalar *_recv_s_parts_w;
+extern part_struct_scalar *_recv_s_parts_n;
+extern part_struct_scalar *_recv_s_parts_s;
+extern part_struct_scalar *_recv_s_parts_t;
+extern part_struct_scalar *_recv_s_parts_b;
 
-
-
-extern real **_anm_re;
-extern real **_anm_im;
-extern real **_anm_re0;
-extern real **_anm_im0;
-extern real **_anm_re00;
-extern real **_anm_im00;
-extern real **_anm_re_perturb;
-extern real **_anm_im_perturb;
-
+extern MPI_Datatype mpi_s_part_struct;
 
 extern int *_nn_scalar;
 extern int *_mm_scalar;
 
-void scalar_read_input(void);
 /*
- * FUNCTION
- * read the scalar.config file
- ****
- */
-
-void show_scalar_config(void);
-/*
- * FUNCTION
- * show the scalar.config file
- ****
- */
-
 void scalar_clean(void);
-/*
- * FUNCTION
- * clean scalar field on host
- ****
- */
-
 void scalar_out_restart(void);
-/*
- * FUNCTION
- * write restart file for scalar field
- ***
- */
-
 void scalar_in_restart(void);
-/*
- * FUNCTION
- * read in restart file for scalar field
- ***
- */
-
-void parts_read_input_scalar(void);
-/*
- * function
- * read in particle initial scalar value, k, intergrate surface and lamb solution order
- */
-
-
 void parts_read_input_scalar_restart(void);
-/* 
- * FUNCTION
- * read in part_scalar.config for scalar field after restart
- *
- */
-
-void parts_scalar_show_config(void);
-/*
- * FUNCTION
- * show particle scalar information
- *
- */
-
-
-void parts_init_scalar(void);
-/*
- * function
- * initialize the particle scalar field value
- */
-
 void parts_scalar_clean(void);
-/*
- * FUNCTION
- * clean variables
- */
+*/
+
+/******************************************************************************/
+void scalar_init_fields(void);
+void scalar_part_init(void);
+void scalar_part_free(void);
+void cuda_scalar_malloc_host(void);
+void cuda_scalar_malloc_dev(void);
+void cuda_scalar_push(void);
+void cuda_scalar_pull(void);
+void cuda_scalar_pull_debug(void);
+void cuda_scalar_pull_restart(void);
+void cuda_scalar_part_malloc_dev(void);
+void cuda_scalar_part_push(void);
+void cuda_scalar_free(void);
+void cuda_scalar_part_free(void);
+void cuda_part_pull_with_scalar(void);
+
+void cuda_scalar_BC(void);
+void cuda_scalar_transfer_parts_i(void);
+void cuda_scalar_transfer_parts_j(void);
+void cuda_scalar_transfer_parts_k(void);
+void mpi_send_s_parts_i(void);
+void mpi_send_s_parts_j(void);
+void mpi_send_s_parts_k(void);
+void cuda_compute_boussinesq(void);
 
 /*************************FUNCTION IN CUDA_SCALAR.CU********************/
 
-void cuda_part_scalar_malloc(void);
-/*
- * Function
- * if scalar_on == 1, allocate and init variables
- */
-
-void cuda_part_scalar_push(void);
-
-void cuda_part_scalar_pull(void);
-
-void cuda_part_scalar_free(void);
-
-
-void cuda_scalar_malloc(void);
-
-void cuda_scalar_push(void);
-
-void cuda_scalar_pull(void);
-
-void cuda_scalar_free(void);
-
 
 void cuda_scalar_BC_s0(void);
-/*
- * function
- * applying the boundary condition for scalar field before calulating
- */
-
-void cuda_scalar_BC_s(void);
 /*
  * function
  * applying the boundary condition for scalar field before calulating
@@ -299,9 +221,6 @@ void cuda_part_BC_scalar_s0(void);
 void cuda_part_BC_scalar_fill(void);
 
 void cuda_show_variable(void);
-
-
-void cuda_compute_boussinesq(void);
 
 void cuda_part_heat_flux(void);
 

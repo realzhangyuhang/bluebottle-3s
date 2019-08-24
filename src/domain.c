@@ -163,13 +163,15 @@ void domain_read_input(void)
 #ifdef DOUBLE
   fret = fscanf(infile, "rho_f %lf\n", &rho_f);
   fret = fscanf(infile, "nu %lf\n", &nu);
-  fret = fscanf(infile, "sD %lf\n", &s_D);
-  fret = fscanf(infile, "sk %lf\n", &s_k);
+  fret = fscanf(infile, "s_D %lf\n", &s_D);
+  fret = fscanf(infile, "s_k %lf\n", &s_k);
+  fret = fscanf(infile, "s_alpha %lf\n", &s_alpha);
 #else // single
   fret = fscanf(infile, "rho_f %f\n", &rho_f);
   fret = fscanf(infile, "nu %f\n", &nu);
-  fret = fscanf(infile, "sD %f\n", &s_D);
-  fret = fscanf(infile, "sk %f\n", &s_k);
+  fret = fscanf(infile, "s_D %f\n", &s_D);
+  fret = fscanf(infile, "s_k %f\n", &s_k);
+  fret = fscanf(infile, "s_alpha %f\n", &s_alpha);
 #endif
   mu = nu * rho_f;  // set dynamic viscosity
   fret = fscanf(infile, "\n");
@@ -179,7 +181,7 @@ void domain_read_input(void)
 #ifdef DOUBLE
   fret = fscanf(infile, "duration %lf\n", &duration);
   fret = fscanf(infile, "CFL %lf\n", &CFL);
-  fret = fscanf(infile, "SCALAR %d\n", &scalar_on);
+  fret = fscanf(infile, "SCALAR %d\n", &SCALAR);
   fret = fscanf(infile, "pp_max_iter %d\n", &pp_max_iter);
   fret = fscanf(infile, "pp_residual %lf\n", &pp_residual);
   fret = fscanf(infile, "lamb_max_iter %d\n", &lamb_max_iter);
@@ -190,7 +192,7 @@ void domain_read_input(void)
 #else
   fret = fscanf(infile, "duration %f\n", &duration);
   fret = fscanf(infile, "CFL %f\n", &CFL);
-  fret = fscanf(infile, "SCALAR %d\n", &scalar_on);
+  fret = fscanf(infile, "SCALAR %d\n", &SCALAR);
   fret = fscanf(infile, "pp_max_iter %d\n", &pp_max_iter);
   fret = fscanf(infile, "pp_residual %f\n", &pp_residual);
   fret = fscanf(infile, "lamb_max_iter %d\n", &lamb_max_iter);
@@ -811,7 +813,7 @@ void domain_read_input(void)
     exit(EXIT_FAILURE);
   }
   fret = fscanf(infile, "\n");
-  fret = fscanf(infile, "init_s %lf\n", &s_init);
+  fret = fscanf(infile, "init_s %lf %lf\n", &s_init, &s_init_rand);
 
   fret = fscanf(infile, "\n");
   /* Read outplane */
@@ -858,7 +860,6 @@ void domain_read_input(void)
   fret = fscanf(infile, "g.x %lf %lf\n", &g.xm, &g.xa);
   fret = fscanf(infile, "g.y %lf %lf\n", &g.ym, &g.ya);
   fret = fscanf(infile, "g.z %lf %lf\n", &g.zm, &g.za);
-  fret = fscanf(infile, "salpha %lf\n", &s_alpha);
 #else
   fret = fscanf(infile, "p_bc_tdelay %f\n", &p_bc_tdelay);
   fret = fscanf(infile, "gradP.x %f %f\n", &gradP.xm, &gradP.xa);
@@ -868,7 +869,6 @@ void domain_read_input(void)
   fret = fscanf(infile, "g.x %f %f\n", &g.xm, &g.xa);
   fret = fscanf(infile, "g.y %f %f\n", &g.ym, &g.ya);
   fret = fscanf(infile, "g.z %f %f\n", &g.zm, &g.za);
-  fret = fscanf(infile, "salpha %f\n", &s_alpha);
 #endif
   fret = fscanf(infile, "\n");
 
@@ -1632,14 +1632,19 @@ void domain_write_config(void)
   fprintf(outfile, "  rho_f = %e\n", rho_f);
   fprintf(outfile, "  nu = %e\n", nu);
   fprintf(outfile, "  mu = %e\n", mu);
+  fprintf(outfile, "  s_D = %e\n", s_D);
+  fprintf(outfile, "  s_k = %e\n", s_k);
+  fprintf(outfile, "  s_alpha = %e\n", s_alpha);
   fprintf(outfile, "\n");
 
   fprintf(outfile, "Simulation Parameters:\n");
   fprintf(outfile, "  duration = %e\n", duration);
   fprintf(outfile, "  CFL = %e\n", CFL);
+  fprintf(outfile, "  SCALAR = %d\n", SCALAR);
   fprintf(outfile, "  pp_max_iter = %d\n", pp_max_iter);
   fprintf(outfile, "  pp_residual = %e\n", pp_residual);
   fprintf(outfile, "  init_cond = %d\n", init_cond);
+  fprintf(outfile, "  s_init = %e, s_init_rand = %e\n", s_init, s_init_rand);
   fprintf(outfile, "    (QUIESCENT = 0, SHEAR = 1, CHANNEL = 2, TAYLOR_GREEN ="
                    " 3, TAYLOR_GREEN_3 = 4,\n");
   fprintf(outfile, "    TURB_CHANNEL = 5, TURBULENT = 6\n");
@@ -1703,6 +1708,31 @@ void domain_write_config(void)
   if (bc.wB == DIRICHLET) fprintf(outfile, " %f", bc.wBDm);
   fprintf(outfile, ", bc.wT = %d", bc.wT);
   if (bc.wT == DIRICHLET) fprintf(outfile, " %f", bc.wTDm);
+  fprintf(outfile, "\n");
+
+  fprintf(outfile, "\n");
+  fprintf(outfile, "Scalar Boundary Conditions:\n");
+  fprintf(outfile, "  bc_s.sW = %d", bc_s.sW);
+  if (bc_s.sW == DIRICHLET) fprintf(outfile, " %f", bc_s.sWD);
+  if (bc_s.sW == NEUMANN) fprintf(outfile, " %f", bc_s.sWN);
+  fprintf(outfile, ", bc_s.sE = %d", bc_s.sE);
+  if (bc_s.sE == DIRICHLET) fprintf(outfile, " %f", bc_s.sED);
+  if (bc_s.sE == NEUMANN) fprintf(outfile, " %f", bc_s.sEN);
+  fprintf(outfile, "\n");
+  fprintf(outfile, "  bc_s.sS = %d", bc_s.sS);
+  if (bc_s.sS == DIRICHLET) fprintf(outfile, " %f", bc_s.sSD);
+  if (bc_s.sS == NEUMANN) fprintf(outfile, " %f", bc_s.sSN);
+  fprintf(outfile, ", bc_s.sN = %d", bc_s.sN);
+  if (bc_s.sN == DIRICHLET) fprintf(outfile, " %f", bc_s.sND);
+  if (bc_s.sN == NEUMANN) fprintf(outfile, " %f", bc_s.sNN);
+  fprintf(outfile, "\n");
+  fprintf(outfile, "  bc_s.sB = %d", bc_s.sB);
+  if (bc_s.sB == DIRICHLET) fprintf(outfile, " %f", bc_s.sBD);
+  if (bc_s.sB == NEUMANN) fprintf(outfile, " %f", bc_s.sBN);
+  fprintf(outfile, ", bc_s.sT = %d", bc_s.sT);
+  if (bc_s.sT == DIRICHLET) fprintf(outfile, " %f", bc_s.sTD);
+  if (bc_s.sT == NEUMANN) fprintf(outfile, " %f", bc_s.sTN);
+  fprintf(outfile, "\n");
   fprintf(outfile, "\n");
 
   fprintf(outfile, "Screen offsets:\n");
@@ -2147,16 +2177,6 @@ void init_quiescent(void)
     diff0_w[i] = 0.;
     f_z[i] = 0.;
     w_star[i] = 0.;
-  }
-  if(scalar_on >= 1) {
-    for (i = 0; i < dom[rank].Gcc.s3b; i++) {
-      s[i] = s_init;
-      s0[i] = s_init;
-      conv_s[i] = 0.0;
-      conv0_s[i] = 0.0;
-      diff_s[i] = 0.0;
-      diff0_s[i] = 0.0;
-    }
   }
 
 }
@@ -3053,6 +3073,16 @@ void out_restart(void)
   fwrite(&pid_back, sizeof(real), 1, rest);
   fwrite(&gradP.z, sizeof(real), 1, rest);
 
+  if (SCALAR >= 1) {
+    fwrite(s, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s0, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s_conv, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s_conv0, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s_diff, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s_diff0, sizeof(real), dom[rank].Gcc.s3b, rest);
+    fwrite(s_parts, sizeof(part_struct_scalar), nparts_subdom, rest);
+    fwrite(&s_ncoeffs_max, sizeof(int), 1, rest);
+  }
   //fwrite(&rec_particle_ttime_out, sizeof(real), 1, rest);
   //fwrite(&rec_prec_ttime_out, sizeof(real), 1, rest);
 
@@ -3140,6 +3170,16 @@ void in_restart(void)
   fread(&pid_back, sizeof(real), 1, infile);
   fread(&gradP.z, sizeof(real), 1, infile);
 
+  if (SCALAR >= 1) {
+    fread(s, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s0, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s_conv, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s_conv0, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s_diff, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s_diff0, sizeof(real), dom[rank].Gcc.s3b, infile);
+    fread(s_parts, sizeof(part_struct_scalar), nparts, infile);
+    fread(&s_ncoeffs_max, sizeof(int), 1, infile);
+  }
   //fwrite(phase, sizeof(int), dom[rank].Gcc.s3b, infile);
   //fwrite(phase_shell, sizeof(int), dom[rank].Gcc.s3b, infile);
   //fwrite(&rec_particle_ttime_out, sizeof(real), 1, infile);

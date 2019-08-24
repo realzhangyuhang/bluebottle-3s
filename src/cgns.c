@@ -325,6 +325,7 @@ void cgns_flow_field(real dtout)
   int fnu;
   int fnv;
   int fnw;
+  int fns;
 
   // set mpi comm
   cgp_mpi_comm(MPI_COMM_WORLD);
@@ -443,6 +444,28 @@ void cgns_flow_field(real dtout)
   free(uout);
   free(vout);
   free(wout);
+
+  // create and write the field data -- scalar
+  real *sout = malloc(dom[rank].Gcc.s3 * sizeof(real));
+  if(SCALAR >= 1) {
+
+    cgp_field_write(fn, bn, zn, sn, RealDouble, "Scalar", &fns);
+
+    for (int k = dom[rank].Gcc._ks; k <= dom[rank].Gcc._ke; k++) {
+      for (int j = dom[rank].Gcc._js; j <= dom[rank].Gcc._je; j++) {
+        for (int i = dom[rank].Gcc._is; i <= dom[rank].Gcc._ie; i++) {
+          int C = GCC_LOC(i - DOM_BUF, j - DOM_BUF, k - DOM_BUF,
+                          dom[rank].Gcc.s1, dom[rank].Gcc.s2);
+          int CC = GCC_LOC(i, j, k, dom[rank].Gcc.s1b, dom[rank].Gcc.s2b);
+
+          sout[C] = s[CC];
+        }
+      }
+    }
+  }
+
+  cgp_field_write_data(fn, bn, zn, sn, fns, nstart, nend, sout);
+  free(sout);
 
   // phase
   cgp_field_write(fn, bn, zn, sn, Integer, "Phase", &fnp);
@@ -772,6 +795,58 @@ void cgns_particles(real dtout)
     real *chi55_r = malloc(nparts_subdom* sizeof(real));
     real *chi55_i = malloc(nparts_subdom* sizeof(real));
 
+    real     *ss = malloc(nparts_subdom* sizeof(real));
+    real     *sq = malloc(nparts_subdom* sizeof(real));
+    real  *a00_r = malloc(nparts_subdom* sizeof(real));
+    real  *a00_i = malloc(nparts_subdom* sizeof(real));
+    real *a1_1_r = malloc(nparts_subdom* sizeof(real));
+    real *a1_1_i = malloc(nparts_subdom* sizeof(real));
+    real  *a10_r = malloc(nparts_subdom* sizeof(real));
+    real  *a10_i = malloc(nparts_subdom* sizeof(real));
+    real  *a11_r = malloc(nparts_subdom* sizeof(real));
+    real  *a11_i = malloc(nparts_subdom* sizeof(real));
+    real *a2_2_r = malloc(nparts_subdom* sizeof(real));
+    real *a2_2_i = malloc(nparts_subdom* sizeof(real));
+    real *a2_1_r = malloc(nparts_subdom* sizeof(real));
+    real *a2_1_i = malloc(nparts_subdom* sizeof(real));
+    real  *a20_r = malloc(nparts_subdom* sizeof(real));
+    real  *a20_i = malloc(nparts_subdom* sizeof(real));
+    real  *a21_r = malloc(nparts_subdom* sizeof(real));
+    real  *a21_i = malloc(nparts_subdom* sizeof(real));
+    real  *a22_r = malloc(nparts_subdom* sizeof(real));
+    real  *a22_i = malloc(nparts_subdom* sizeof(real));
+    real *a3_3_r = malloc(nparts_subdom* sizeof(real));
+    real *a3_3_i = malloc(nparts_subdom* sizeof(real));
+    real *a3_2_r = malloc(nparts_subdom* sizeof(real));
+    real *a3_2_i = malloc(nparts_subdom* sizeof(real));
+    real *a3_1_r = malloc(nparts_subdom* sizeof(real));
+    real *a3_1_i = malloc(nparts_subdom* sizeof(real));
+    real  *a30_r = malloc(nparts_subdom* sizeof(real));
+    real  *a30_i = malloc(nparts_subdom* sizeof(real));
+    real  *a31_r = malloc(nparts_subdom* sizeof(real));
+    real  *a31_i = malloc(nparts_subdom* sizeof(real));
+    real  *a32_r = malloc(nparts_subdom* sizeof(real));
+    real  *a32_i = malloc(nparts_subdom* sizeof(real));
+    real  *a33_r = malloc(nparts_subdom* sizeof(real));
+    real  *a33_i = malloc(nparts_subdom* sizeof(real));
+    real *a4_4_r = malloc(nparts_subdom* sizeof(real));
+    real *a4_4_i = malloc(nparts_subdom* sizeof(real));
+    real *a4_3_r = malloc(nparts_subdom* sizeof(real));
+    real *a4_3_i = malloc(nparts_subdom* sizeof(real));
+    real *a4_2_r = malloc(nparts_subdom* sizeof(real));
+    real *a4_2_i = malloc(nparts_subdom* sizeof(real));
+    real *a4_1_r = malloc(nparts_subdom* sizeof(real));
+    real *a4_1_i = malloc(nparts_subdom* sizeof(real));
+    real  *a40_r = malloc(nparts_subdom* sizeof(real));
+    real  *a40_i = malloc(nparts_subdom* sizeof(real));
+    real  *a41_r = malloc(nparts_subdom* sizeof(real));
+    real  *a41_i = malloc(nparts_subdom* sizeof(real));
+    real  *a42_r = malloc(nparts_subdom* sizeof(real));
+    real  *a42_i = malloc(nparts_subdom* sizeof(real));
+    real  *a43_r = malloc(nparts_subdom* sizeof(real));
+    real  *a43_i = malloc(nparts_subdom* sizeof(real));
+    real  *a44_r = malloc(nparts_subdom* sizeof(real));
+    real  *a44_i = malloc(nparts_subdom* sizeof(real));
 
     for (int n = 0; n < nparts_subdom; n++) {
       real mass = 4./3.*PI*(parts[n].rho - rho_f) * 
@@ -1096,7 +1171,119 @@ void cgns_particles(real dtout)
           phi00_i[n] = parts[n].phinm_im[0];
           chi00_r[n] = parts[n].chinm_re[0];
           chi00_i[n] = parts[n].chinm_im[0];
-       }
+      }
+
+      if(SCALAR >= 1) {
+        ss[n] = s_parts[n].s;
+        sq[n] = s_parts[n].q;
+         a00_r[n] = 0;
+         a00_i[n] = 0;
+        a1_1_r[n] = 0;
+        a1_1_i[n] = 0;
+         a10_r[n] = 0;
+         a10_i[n] = 0;
+         a11_r[n] = 0;
+         a11_i[n] = 0;
+        a2_2_r[n] = 0;
+        a2_2_i[n] = 0;
+        a2_1_r[n] = 0;
+        a2_1_i[n] = 0;
+         a20_r[n] = 0;
+         a20_i[n] = 0;
+         a21_r[n] = 0;
+         a21_i[n] = 0;
+         a22_r[n] = 0;
+         a22_i[n] = 0;
+        a3_3_r[n] = 0;
+        a3_3_i[n] = 0;
+        a3_2_r[n] = 0;
+        a3_2_i[n] = 0;
+        a3_1_r[n] = 0;
+        a3_1_i[n] = 0;
+         a30_r[n] = 0;
+         a30_i[n] = 0;
+         a31_r[n] = 0;
+         a31_i[n] = 0;
+         a32_r[n] = 0;
+         a32_i[n] = 0;
+         a33_r[n] = 0;
+         a33_i[n] = 0;
+        a4_4_r[n] = 0;
+        a4_4_i[n] = 0;
+        a4_3_r[n] = 0;
+        a4_3_i[n] = 0;
+        a4_2_r[n] = 0;
+        a4_2_i[n] = 0;
+        a4_1_r[n] = 0;
+        a4_1_i[n] = 0;
+         a40_r[n] = 0;
+         a40_i[n] = 0;
+         a41_r[n] = 0;
+         a41_i[n] = 0;
+         a42_r[n] = 0;
+         a42_i[n] = 0;
+         a43_r[n] = 0;
+         a43_i[n] = 0;
+         a44_r[n] = 0;
+         a44_i[n] = 0;
+        switch(s_parts[n].ncoeff) {
+          case(25):
+             a44_r[n] = s_parts[n].anm_re[24];
+             a44_i[n] = s_parts[n].anm_im[24];
+             a43_r[n] = s_parts[n].anm_re[23];
+             a43_i[n] = s_parts[n].anm_im[23];
+             a42_r[n] = s_parts[n].anm_re[22];
+             a42_i[n] = s_parts[n].anm_im[22];
+             a41_r[n] = s_parts[n].anm_re[21];
+             a41_i[n] = s_parts[n].anm_im[21];
+             a40_r[n] = s_parts[n].anm_re[20];
+             a40_i[n] = s_parts[n].anm_im[20];
+            a4_1_r[n] = s_parts[n].anm_re[19];
+            a4_1_i[n] = s_parts[n].anm_im[19];
+            a4_2_r[n] = s_parts[n].anm_re[18];
+            a4_2_i[n] = s_parts[n].anm_im[18];
+            a4_3_r[n] = s_parts[n].anm_re[17];
+            a4_3_i[n] = s_parts[n].anm_im[17];
+            a4_4_r[n] = s_parts[n].anm_re[16];
+            a4_4_i[n] = s_parts[n].anm_im[16];
+          case(16):
+             a33_r[n] = s_parts[n].anm_re[15];
+             a33_i[n] = s_parts[n].anm_im[15];
+             a32_r[n] = s_parts[n].anm_re[14];
+             a32_i[n] = s_parts[n].anm_im[14];
+             a31_r[n] = s_parts[n].anm_re[13];
+             a31_i[n] = s_parts[n].anm_im[13];
+             a30_r[n] = s_parts[n].anm_re[12];
+             a30_i[n] = s_parts[n].anm_im[12];
+            a3_1_r[n] = s_parts[n].anm_re[11];
+            a3_1_i[n] = s_parts[n].anm_im[11];
+            a3_2_r[n] = s_parts[n].anm_re[10];
+            a3_2_i[n] = s_parts[n].anm_im[10];
+             a3_3_r[n] = s_parts[n].anm_re[9];
+             a3_3_i[n] = s_parts[n].anm_im[9];
+          case(9):
+             a22_r[n] = s_parts[n].anm_re[8];
+             a22_i[n] = s_parts[n].anm_im[8];
+             a21_r[n] = s_parts[n].anm_re[7];
+             a21_i[n] = s_parts[n].anm_im[7];
+             a20_r[n] = s_parts[n].anm_re[6];
+             a20_i[n] = s_parts[n].anm_im[6];
+            a2_1_r[n] = s_parts[n].anm_re[5];
+            a2_1_i[n] = s_parts[n].anm_im[5];
+            a2_2_r[n] = s_parts[n].anm_re[4];
+            a2_2_i[n] = s_parts[n].anm_im[4];
+          case(4):
+             a11_r[n] = s_parts[n].anm_re[3];
+             a11_i[n] = s_parts[n].anm_im[3];
+             a10_r[n] = s_parts[n].anm_re[2];
+             a10_i[n] = s_parts[n].anm_im[2];
+            a1_1_r[n] = s_parts[n].anm_re[1];
+            a1_1_i[n] = s_parts[n].anm_im[1];
+          case(1):
+             a00_r[n] = s_parts[n].anm_re[0];
+             a00_i[n] = s_parts[n].anm_im[0];
+        }
+      }
     }
 
     // create data nodes for coordinates
@@ -1529,6 +1716,122 @@ void cgns_particles(real dtout)
         cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, chi00_i);
     }
 
+    if (SCALAR >= 1) {
+	  // scalar and heat flux
+      cgp_field_write(fn, bn, zn, sn, RealDouble, "Scalar", &fnr);
+      cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, ss);
+      cgp_field_write(fn, bn, zn, sn, RealDouble, "Heat_flux", &fnr);
+      cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, sq);
+      // coeffs
+      switch(s_ncoeffs_max) {
+        case(25):
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a44_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a44_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a44_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a44_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a43_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a43_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a43_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a43_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a42_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a42_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a42_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a42_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a41_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a41_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a41_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a41_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a40_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a40_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a40_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a40_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_1_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_1_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_1_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_1_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_2_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_2_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_2_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_2_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_3_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_3_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_3_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_3_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_4_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_4_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a4_4_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a4_4_i);
+        case(16):
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a33_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a33_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a33_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a33_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a32_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a32_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a32_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a32_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a31_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a31_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a31_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a31_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a30_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a30_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a30_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a30_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_1_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_1_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_1_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_1_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_2_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_2_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_2_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_2_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_3_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_3_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a3_3_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a3_3_i);
+        case(9):
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a22_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a22_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a22_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a22_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a21_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a21_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a21_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a21_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a20_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a20_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a20_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a20_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a2_1_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a2_1_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a2_1_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a2_1_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a2_2_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a2_2_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a2_2_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a2_2_i);
+        case(4):
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a11_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a11_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a11_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a11_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a10_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a10_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a10_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a10_i);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a1_1_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a1_1_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a1_1_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a1_1_i);
+        case(1):
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a00_re", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a00_r);
+           cgp_field_write(fn, bn, zn, sn, RealDouble, "a00_im", &fnr);
+           cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, a00_i);
+      }
+	}
+
     // Miscellaneous data - scalars, time
     cgsize_t nele[1];
     nele[0] = 1;
@@ -1732,6 +2035,61 @@ void cgns_particles(real dtout)
     free(phi55_i);
     free(chi55_r);
     free(chi55_i);
+    
+    if (SCALAR >= 1) {
+      free(ss);
+      free(sq);
+      free(a00_r);
+      free(a00_i);
+      free(a1_1_r);
+      free(a1_1_i);
+      free(a10_r);
+      free(a10_i);
+      free(a11_r);
+      free(a11_i);
+      free(a2_2_r);
+      free(a2_2_i);
+      free(a2_1_r);
+      free(a2_1_i);
+      free(a20_r);
+      free(a20_i);
+      free(a21_r);
+      free(a21_i);
+      free(a22_r);
+      free(a22_i);
+      free(a3_3_r);
+      free(a3_3_i);
+      free(a3_2_r);
+      free(a3_2_i);
+      free(a3_1_r);
+      free(a3_1_i);
+      free(a30_r);
+      free(a30_i);
+      free(a31_r);
+      free(a31_i);
+      free(a32_r);
+      free(a32_i);
+      free(a33_r);
+      free(a33_i);
+      free(a4_4_r);
+      free(a4_4_i);
+      free(a4_3_r);
+      free(a4_3_i);
+      free(a4_2_r);
+      free(a4_2_i);
+      free(a4_1_r);
+      free(a4_1_i);
+      free(a40_r);
+      free(a40_i);
+      free(a41_r);
+      free(a41_i);
+      free(a42_r);
+      free(a42_i);
+      free(a43_r);
+      free(a43_i);
+      free(a44_r);
+      free(a44_i);
+	}
   }
 
   // Only free communicator on proc's that have it -- procs not in the
@@ -1771,6 +2129,9 @@ void cgns_flow_field_ghost(real dtout)
   int fnu_diff;
   int fnv_diff;
   int fnw_diff;
+  int fns;
+  int fns_conv;
+  int fns_diff;
 
   cgp_mpi_comm(MPI_COMM_WORLD);
   // open file in parallel
@@ -1997,6 +2358,32 @@ void cgns_flow_field_ghost(real dtout)
   free(uout);
   free(vout);
   free(wout);
+
+  // create and write the scalar-related fields
+  if (SCALAR >= 1) {
+
+	// scalar
+    if (cgp_field_write(fn, bn, zn, sn, RealDouble, "Scalar", &fns))
+      cgp_error_exit();
+
+    if (cgp_field_write_data(fn, bn, zn, sn, fns, nstart, nend, s))
+      cgp_error_exit();
+
+    // scalar convective term
+    if (cgp_field_write(fn, bn, zn, sn, RealDouble, "SConv", &fns_conv))
+      cgp_error_exit();
+
+    if (cgp_field_write_data(fn, bn, zn, sn, fns_conv, nstart, nend, s_conv))
+      cgp_error_exit();
+
+    // scalar diffusive term
+    if (cgp_field_write(fn, bn, zn, sn, RealDouble, "SDiff", &fns_diff))
+      cgp_error_exit();
+
+    if (cgp_field_write_data(fn, bn, zn, sn, fns_diff, nstart, nend, s_diff))
+      cgp_error_exit();
+
+  }
 
   // phase, phase_shell
   cgp_field_write(fn, bn, zn, sn, Integer, "Phase", &fnp);
