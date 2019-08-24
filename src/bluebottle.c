@@ -106,9 +106,12 @@ int main(int argc, char *argv[])
   /* Fill ghost bins for first time step */
   if (NPARTS > 0) {
 	if (SCALAR >= 1) {
-	  cuda_scalar_transfer_parts_i();
-	  cuda_scalar_transfer_parts_j();
-	  cuda_scalar_transfer_parts_k();
+	  //cuda_scalar_transfer_parts_i();
+	  //cuda_scalar_transfer_parts_j();
+	  //cuda_scalar_transfer_parts_k();
+	    cuda_transfer_parts_i();
+        cuda_transfer_parts_j();
+        cuda_transfer_parts_k();
 	} else {
       cuda_transfer_parts_i();
       cuda_transfer_parts_j();
@@ -319,9 +322,12 @@ int main(int argc, char *argv[])
     if (NPARTS > 0) {
       cuda_update_part_position();
       if (SCALAR >= 1) {
-		cuda_scalar_transfer_parts_i();
-		cuda_scalar_transfer_parts_j();
-		cuda_scalar_transfer_parts_k();
+		//cuda_scalar_transfer_parts_i();
+		//cuda_scalar_transfer_parts_j();
+		//cuda_scalar_transfer_parts_k();
+	    cuda_transfer_parts_i();
+        cuda_transfer_parts_j();
+        cuda_transfer_parts_k();
 	  } else {
 	    cuda_transfer_parts_i();
         cuda_transfer_parts_j();

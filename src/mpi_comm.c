@@ -1333,6 +1333,7 @@ void mpi_free()
   if (NPARTS > 0) {
     MPI_Win_free(&nparts_recv_win);
     MPI_Type_free(&mpi_part_struct);
+    MPI_Type_free(&mpi_s_part_struct);
   }
 }
 
