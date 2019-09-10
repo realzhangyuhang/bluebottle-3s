@@ -434,7 +434,7 @@ void cuda_dom_malloc_dev(void)
 extern "C"
 void cuda_update_bc(void)
 {
-    printf("\nupdate bc\n");
+    //printf("\nupdate bc\n");
     update_vel_BC<<<1, 1>>>(_bc, v_bc_tdelay, ttime);
 
 }

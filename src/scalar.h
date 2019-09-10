@@ -26,6 +26,9 @@
 #include "bluebottle.h"
 
 #define S_MAX_COEFFS 25
+#define SNSP 2
+#define SP_YS_RE 0
+#define SP_YS_IM 1
 
 typedef struct BC_s {
   int sW;
@@ -56,39 +59,31 @@ typedef struct BC_s {
  */
 
 extern BC_s bc_s;
+extern BC_s *_bc_s;
 
 typedef struct part_struct_scalar {
-  real s0;
   real s;
   int update;
   real rs;
   real q;
-  real iq;
   real cp;
   int order;
   int ncoeff;
-  real dsdr[NNODES];
   real anm_re[S_MAX_COEFFS];
   real anm_im[S_MAX_COEFFS];
   real anm_re0[S_MAX_COEFFS];
   real anm_im0[S_MAX_COEFFS];
-  real anm_re00[S_MAX_COEFFS];
-  real anm_im00[S_MAX_COEFFS];
 } part_struct_scalar;
 /*
  * PURPOSE
  * MEMBERS
- * * s0 is the previous time step scalar value
  * * s is the current time step scalar value
  * * update is 1 when the particle's temperature change with fluid, is 0 when particle surface temperature is fixed
  * * rs the integrate surface
  * * q is the intergral of hear flux across the particle surface
- * * iq is the lubircation correction for heat flux across the particle surface
- * * k is the termal conductivity for each particle
  * * cp is the particle specific heat
  * * order is the order to keep lamb solution, equals to index n in Ynm
  * * ncoeff is the corresponding m index in Ynm
- * * dsdr is the scalar gradient at particle surface for Lebsque nodes
 */
 
 extern real s_D; // thermal diffusivity, used in diffusivity term, D\nabla_T^2
@@ -119,6 +114,9 @@ extern real *_s_diff;
 extern part_struct_scalar *s_parts;
 extern part_struct_scalar *_s_parts;
 
+extern real *_int_Ys_re;
+extern real *_int_Ys_im;
+
 extern part_struct_scalar *_send_s_parts_e;
 extern part_struct_scalar *_send_s_parts_w;
 extern part_struct_scalar *_send_s_parts_n;
@@ -135,17 +133,6 @@ extern part_struct_scalar *_recv_s_parts_b;
 
 extern MPI_Datatype mpi_s_part_struct;
 
-extern int *_nn_scalar;
-extern int *_mm_scalar;
-
-/*
-void scalar_clean(void);
-void scalar_out_restart(void);
-void scalar_in_restart(void);
-void parts_read_input_scalar_restart(void);
-void parts_scalar_clean(void);
-*/
-
 /******************************************************************************/
 void scalar_init_fields(void);
 void scalar_part_init(void);
@@ -160,9 +147,16 @@ void cuda_scalar_part_malloc_dev(void);
 void cuda_scalar_part_push(void);
 void cuda_scalar_free(void);
 void cuda_scalar_part_free(void);
-void cuda_part_pull_with_scalar(void);
+void cuda_scalar_part_pull_with_scalar(void);
+void cuda_scalar_part_BC(real *array);
+void cuda_scalar_part_fill(void);
+void cuda_scalar_solve(void);
+void cuda_scalar_lamb(void);
+real cuda_scalar_lamb_err(void);
+void cuda_store_s(void);
+void cuda_scalar_update_part(void);
 
-void cuda_scalar_BC(void);
+void cuda_scalar_BC(real *array);
 void cuda_scalar_transfer_parts_i(void);
 void cuda_scalar_transfer_parts_j(void);
 void cuda_scalar_transfer_parts_k(void);
@@ -170,61 +164,11 @@ void mpi_send_s_parts_i(void);
 void mpi_send_s_parts_j(void);
 void mpi_send_s_parts_k(void);
 void cuda_compute_boussinesq(void);
+void cuda_scalar_partial_sum_i(void);
+void cuda_scalar_partial_sum_j(void);
+void cuda_scalar_partial_sum_k(void);
+void mpi_send_s_psums_i(void);
+void mpi_send_s_psums_j(void);
+void mpi_send_s_psums_k(void);
 
-/*************************FUNCTION IN CUDA_SCALAR.CU********************/
-
-
-void cuda_scalar_BC_s0(void);
-/*
- * function
- * applying the boundary condition for scalar field before calulating
- */
-
-void cuda_solve_scalar_explicit(void);
-
-void cuda_update_scalar(void);
-
-void cuda_quad_check_nodes_scalar(int dev,real *node_t, real *node_p, int nnodes);
-/*
- * Function
- * check if the intergrat nodes inter-section with the wall
- */
-
-
-void cuda_quad_interp_scalar(int dev, real *node_t, real *node_p, int nnodes, real *ss);
-/*
- * Function
- * interpolate scalar field value into lebsque nodes
- * node_t is the theta for lebsque nodes
- * node_p is the phi for lebsque nodes
- ** nnodes is the number of lebsque nodes
- */
-
-void cuda_scalar_lamb(void);
-/*
- * FUNCTION
- * interpolate the outer field to Lebsque nodes and use the value to calculate the coefficents
- */
-
-real cuda_scalar_lamb_err(void);
-/*
- * FUNCTION
- * find the residue for lamb coefficents
- */
-
-void cuda_part_BC_scalar_s0(void);
-/*
- * FUNCTION
- * Apply the Dirichlet boundary condition to those nodes for scalar field
- */
-
-void cuda_part_BC_scalar_fill(void);
-
-void cuda_show_variable(void);
-
-void cuda_part_heat_flux(void);
-
-void cuda_store_coeffs_scalar(void);
-
-void cuda_update_part_scalar(void);
 #endif

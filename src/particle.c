@@ -550,6 +550,10 @@ void parts_init(void)
     parts[i].ncoll_wall = 0;
   }
 
+  if (SCALAR >= 1) {
+    scalar_part_init();
+  }
+
   #ifdef DDEBUG
     parts_print();
   #endif // DDEBUG
@@ -708,21 +712,13 @@ void parts_print(void)
     }
     fprintf(outfile, "\n");
 
-    fprintf(outfile, "s_parts[%d].s0 = %lf\n", n, s_parts[n].s0);
     fprintf(outfile, "s_parts[%d].s = %lf\n", n, s_parts[n].s);
     fprintf(outfile, "s_parts[%d].update = %d\n", n, s_parts[n].update);
     fprintf(outfile, "s_parts[%d].rs = %lf\n", n, s_parts[n].rs);
     fprintf(outfile, "s_parts[%d].q = %lf\n", n, s_parts[n].q);
-    fprintf(outfile, "s_parts[%d].iq = %lf\n", n, s_parts[n].iq);
     fprintf(outfile, "s_parts[%d].cp = %lf\n", n, s_parts[n].cp);
     fprintf(outfile, "s_parts[%d].order = %d\n", n, s_parts[n].order);
     fprintf(outfile, "s_parts[%d].ncoeff = %d\n", n, s_parts[n].ncoeff);
-
-    fprintf(outfile, "s_parts[%d].dsdr:\n\t", n);
-    for (int i = 0; i < NNODES; i++) {
-      fprintf(outfile, " %lf", s_parts[n].dsdr[i]);
-    }
-    fprintf(outfile, "\n");
     
     fprintf(outfile, "s_parts[%d].anm_re:\n\t", n);
     for (int i = 0; i < S_MAX_COEFFS; i++) {
@@ -747,19 +743,6 @@ void parts_print(void)
       fprintf(outfile, " %lf", s_parts[n].anm_im0[i]);
     }
     fprintf(outfile, "\n");
-    
-    fprintf(outfile, "s_parts[%d].anm_re00:\n\t", n);
-    for (int i = 0; i < S_MAX_COEFFS; i++) {
-      fprintf(outfile, " %lf", s_parts[n].anm_re00[i]);
-    }
-    fprintf(outfile, "\n");
-    
-    fprintf(outfile, "s_parts[%d].anm_im00:\n\t", n);
-    for (int i = 0; i < S_MAX_COEFFS; i++) {
-      fprintf(outfile, " %lf", s_parts[n].anm_im00[i]);
-    }
-    fprintf(outfile, "\n");
-    
   }
   fclose(outfile);
 }

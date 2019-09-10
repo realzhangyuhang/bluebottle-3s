@@ -1531,9 +1531,9 @@ __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
       // (also, if zeroth order is 0, ignore)
       real curr_val = s_coeffs[c];
       real zeroth_val = s_coeffs[0 + ncoeffs_max * i];
-      int flag = (curr_val*curr_val > lamb_cut*lamb_cut * zeroth_val*zeroth_val) *
-                  (curr_val*curr_val > 1.e-32) *
-                  (zeroth_val*zeroth_val > DBL_MIN*DBL_MIN);
+      int flag = (fabs(curr_val) > fabs(lamb_cut*zeroth_val)) *
+                  (fabs(curr_val) > 1.e-16) *
+                  (fabs(zeroth_val) > DBL_MIN);
 
       // If flag == 1, set scoeff equal to error value
       // If flag == 0, set scoeff equal to zero (no error)

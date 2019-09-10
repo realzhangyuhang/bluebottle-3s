@@ -1977,7 +1977,6 @@ void compute_vel_BC()
     } else {
       bc.uTD = delta*bc.uTDa;
     }
-    printf("bcUTD %f\n", bc.uTD);
     // vWD
     if (bc.vWDa == 0) {
       bc.vWD = bc.vWDm;

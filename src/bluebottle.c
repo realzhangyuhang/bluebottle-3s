@@ -89,9 +89,6 @@ int main(int argc, char *argv[])
     }
   } else {
     parts_init();
-    if (SCALAR >= 1) {
-	  scalar_part_init();
-	}
   }
 
   /* Allocate particles on device */
@@ -105,14 +102,11 @@ int main(int argc, char *argv[])
 
   /* Fill ghost bins for first time step */
   if (NPARTS > 0) {
-	if (SCALAR >= 1) {
-	  //cuda_scalar_transfer_parts_i();
-	  //cuda_scalar_transfer_parts_j();
-	  //cuda_scalar_transfer_parts_k();
-	    cuda_transfer_parts_i();
-        cuda_transfer_parts_j();
-        cuda_transfer_parts_k();
-	} else {
+    if (SCALAR >= 1) {
+      cuda_scalar_transfer_parts_i();
+      cuda_scalar_transfer_parts_j();
+      cuda_scalar_transfer_parts_k();
+    } else {
       cuda_transfer_parts_i();
       cuda_transfer_parts_j();
       cuda_transfer_parts_k();
@@ -125,10 +119,10 @@ int main(int argc, char *argv[])
   mpi_cuda_exchange_Gfx(_u);
   mpi_cuda_exchange_Gfy(_v);
   mpi_cuda_exchange_Gfz(_w);
-  //if (SCALAR >= 1) {
-	//cuda_scalar_push();
-    //mpi_cuda_exchange_Gcc(_s);
-  //}
+  if (SCALAR >= 1) {
+    cuda_scalar_push();
+    mpi_cuda_exchange_Gcc(_s);
+  }
 
   /* Build phase, phase_shell, and flag variables */
   cuda_build_cages();
@@ -142,10 +136,10 @@ int main(int argc, char *argv[])
   mpi_cuda_exchange_Gfx(_u);
   mpi_cuda_exchange_Gfy(_v);
   mpi_cuda_exchange_Gfz(_w);
-  //if (SCALAR >= 1) {
-	//cuda_scalar_BC();
-    //mpi_cuda_exchange_Gcc(_s);
-  //}
+  if (SCALAR >= 1) {
+    cuda_scalar_BC(_s0);
+    mpi_cuda_exchange_Gcc(_s0);
+  }
 
   /* Initialize jacobi preconditioner */
   cuda_PP_init_jacobi_preconditioner();
@@ -192,9 +186,9 @@ int main(int argc, char *argv[])
 
     /* Compute forcing and velocity boundary conditions */
     cuda_compute_forcing();
-    if (SCALAR >= 1) {
-	  cuda_compute_boussinesq();
-	}
+//    if (SCALAR >= 1) {
+//      cuda_compute_boussinesq();
+//    }
     cuda_compute_turb_forcing();
     compute_vel_BC();
 
@@ -279,18 +273,70 @@ int main(int argc, char *argv[])
     } // End Lamb's iterations
 
     // Deal with lamb's iterations convergence (or not)
-    if (lambflag == 1) {
+    if (rank == 0) {
       if (iter < lamb_max_iter) {
-        if (rank == 0)
-          printf("  The Lamb's coefficients converged in %d iterations\n", iter);
+        printf("  The Lamb's coefficients converged in %d iterations\n", iter);
       } else if (iter == lamb_max_iter) {
-        if (rank == 0)
+        if (lambflag == 1) {
           printf("  Reached the max number of Lamb's iterations. Continuing...\n");
+        } else {
+          printf("  Reached the max number of Lamb's iterations. Exiting...\n");
+          exit(EXIT_FAILURE);
+        }
       }
-    } else {
-      if (rank == 0) 
-        printf("  Reached the maxnumber of Lamb's iterations. Exiting...\n");
-      exit(EXIT_FAILURE);
+    }
+
+    /***** Scalar inner iteration *****/
+    if (SCALAR >= 1) {
+      int scalar_iter = 0;
+      real scalar_iter_err = FLT_MAX;
+
+      while (scalar_iter_err > lamb_residual) {
+        if (rank == 0) printf("  Iteration %d: ", scalar_iter);
+        fflush(stdout);
+
+        // apply b.c. on s0, domain and part
+        cuda_scalar_BC(_s0);
+        cuda_scalar_part_BC(_s0);
+        mpi_cuda_exchange_Gcc(_s0);
+
+        // integrate scalar convection-diffusion equation
+        cuda_scalar_solve();
+
+        // apply b.c. on s, domain and part
+        cuda_scalar_BC(_s);
+        cuda_scalar_part_fill();
+        mpi_cuda_exchange_Gcc(_s);
+
+        // update lamb's coefficients using the new field variable s
+        cuda_scalar_lamb();
+
+        scalar_iter_err = cuda_scalar_lamb_err();
+        if (rank == 0) printf("  Error = %f\r", scalar_iter_err);
+        fflush(stdout);
+        scalar_iter++;
+
+        if (scalar_iter == lamb_max_iter) {
+          // allow simulation continues even if it reaches the max number
+          break;
+        }
+      }
+
+      if (rank == 0) {
+        if (scalar_iter < lamb_max_iter) {
+          printf("  The Scalar's coefficients converged in %d iterations\n", scalar_iter);
+        } else if (scalar_iter == lamb_max_iter) {
+          if (lambflag == 1) {
+            printf("  Reached the max number of Lamb's iterations. Continuing...\n");
+          } else {
+            printf("  Reached the max number of Lamb's iterations. Exiting...\n");
+            exit(EXIT_FAILURE);
+          }
+        }
+      }
+
+      // store scalar field variables for next timestep
+      cuda_store_s();
     }
 
     if (NPARTS > 0) {
@@ -322,17 +368,15 @@ int main(int argc, char *argv[])
     if (NPARTS > 0) {
       cuda_update_part_position();
       if (SCALAR >= 1) {
-		//cuda_scalar_transfer_parts_i();
-		//cuda_scalar_transfer_parts_j();
-		//cuda_scalar_transfer_parts_k();
-	    cuda_transfer_parts_i();
+        cuda_scalar_update_part();
+        cuda_scalar_transfer_parts_i();
+        cuda_scalar_transfer_parts_j();
+        cuda_scalar_transfer_parts_k();
+      } else {
+        cuda_transfer_parts_i();
         cuda_transfer_parts_j();
         cuda_transfer_parts_k();
-	  } else {
-	    cuda_transfer_parts_i();
-        cuda_transfer_parts_j();
-        cuda_transfer_parts_k();
-	  }
+      }
     }
 
     /* Rebuild cages with new positions */
