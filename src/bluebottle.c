@@ -89,28 +89,21 @@ int main(int argc, char *argv[])
     }
   } else {
     parts_init();
+    scalar_part_init();
   }
 
   /* Allocate particles on device */
   cuda_part_malloc_dev();
   cuda_part_push();
-  if (SCALAR >= 1) {
-    cuda_scalar_part_malloc_dev();
-    cuda_scalar_part_push();
-  }
+  cuda_scalar_part_malloc_dev();
+  cuda_scalar_part_push();
   count_mem();
 
   /* Fill ghost bins for first time step */
   if (NPARTS > 0) {
-    if (SCALAR >= 1) {
-      cuda_scalar_transfer_parts_i();
-      cuda_scalar_transfer_parts_j();
-      cuda_scalar_transfer_parts_k();
-    } else {
-      cuda_transfer_parts_i();
-      cuda_transfer_parts_j();
-      cuda_transfer_parts_k();
-    }
+    cuda_scalar_transfer_parts_i();
+    cuda_scalar_transfer_parts_j();
+    cuda_scalar_transfer_parts_k();
   }
 
   /* Push initial fields to device and exchange initial condition */
@@ -186,9 +179,9 @@ int main(int argc, char *argv[])
 
     /* Compute forcing and velocity boundary conditions */
     cuda_compute_forcing();
-//    if (SCALAR >= 1) {
-//      cuda_compute_boussinesq();
-//    }
+    if (SCALAR >= 1) {
+      cuda_compute_boussinesq();
+    }
     cuda_compute_turb_forcing();
     compute_vel_BC();
 
@@ -357,7 +350,7 @@ int main(int argc, char *argv[])
 
     /* Compute next time step size */
     dt0 = dt;
-    cuda_find_dt(); 
+    cuda_find_dt();
 
     /* Output */
     #ifdef CGNS_OUTPUT
@@ -412,8 +405,8 @@ int main(int argc, char *argv[])
   /* Free all cuda-allocated memory (device and pinned on host) */
   if (SCALAR >= 1) {
     cuda_scalar_free();
-    cuda_scalar_part_free();
   }
+  cuda_scalar_part_free();
   cuda_part_free();
   cuda_dom_free();
 
@@ -423,9 +416,7 @@ int main(int argc, char *argv[])
   /* Free host memory */
   domain_free();
   part_free();
-  if (SCALAR >= 1) {
-    scalar_part_free();
-  }
+  scalar_part_free();
 
   /* End MPI */
   mpi_end();

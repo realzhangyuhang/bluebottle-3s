@@ -312,7 +312,7 @@ void cuda_scalar_transfer_parts_i(void)
     offset = nparts_old - nparts_ghost[WEST] - nparts_ghost[EAST];
     copy_ghost_bin_parts<<<num_nparts_w, dim_nparts_w>>>(_tmp_parts, _recv_parts_w,
       nparts_recv[WEST], offset, WEST, _DOM);
-	copy_ghost_bin_s_parts<<<num_nparts_w, dim_nparts_w>>>(_tmp_s_parts, _recv_s_parts_w,
+    copy_ghost_bin_s_parts<<<num_nparts_w, dim_nparts_w>>>(_tmp_s_parts, _recv_s_parts_w,
       nparts_recv[WEST], offset, WEST, _DOM);
   } else { // nparts_recv[WEST] <= 0
     // Do nothing
@@ -1073,6 +1073,27 @@ void cuda_scalar_push(void)
     cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(_s_diff0, s_diff0, dom[rank].Gcc.s3b * sizeof(real),
     cudaMemcpyHostToDevice));
+
+  int s_nn[64] = {0,
+                1, 1, 1,
+                2, 2, 2, 2, 2,
+                3, 3, 3, 3, 3, 3, 3,
+                4, 4, 4, 4, 4, 4, 4, 4, 4,
+                5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+
+  int s_mm[64] = {0,
+                -1, 0, 1,
+                -2, -1, 0, 1, 2,
+                -3, -2, -1, 0, 1, 2, 3,
+                -4, -3, -2, -1, 0, 1, 2, 3, 4,
+                -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5,
+                -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6,
+                -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7};
+
+  checkCudaErrors(cudaMemcpyToSymbol(_s_mm, s_mm, 64 * sizeof(int)));
+  checkCudaErrors(cudaMemcpyToSymbol(_s_nn, s_nn, 64 * sizeof(int)));
 }
 
 extern "C"
@@ -1125,7 +1146,7 @@ void cuda_scalar_free(void)
 extern "C"
 void cuda_scalar_part_malloc_dev(void)
 {
-  if (NPARTS > 0 && SCALAR >= 1) {
+  if (NPARTS > 0) {
     checkCudaErrors(cudaMalloc(&_s_parts, nparts * sizeof(part_struct_scalar)));
     gpumem += nparts * sizeof(part_struct_scalar);
   }
@@ -1134,30 +1155,9 @@ void cuda_scalar_part_malloc_dev(void)
 extern "C"
 void cuda_scalar_part_push(void)
 {
-  if (NPARTS > 0 && SCALAR >= 1) {
+  if (NPARTS > 0) {
     checkCudaErrors(cudaMemcpy(_s_parts, s_parts, nparts * sizeof(part_struct_scalar),
       cudaMemcpyHostToDevice));
-
-    int s_nn[64] = {0,
-                  1, 1, 1,
-                  2, 2, 2, 2, 2,
-                  3, 3, 3, 3, 3, 3, 3,
-                  4, 4, 4, 4, 4, 4, 4, 4, 4,
-                  5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                  7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
-
-    int s_mm[64] = {0,
-                  -1, 0, 1,
-                  -2, -1, 0, 1, 2,
-                  -3, -2, -1, 0, 1, 2, 3,
-                  -4, -3, -2, -1, 0, 1, 2, 3, 4,
-                  -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5,
-                  -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6,
-                  -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7};
-
-    checkCudaErrors(cudaMemcpyToSymbol(_s_mm, s_mm, 64 * sizeof(int)));
-    checkCudaErrors(cudaMemcpyToSymbol(_s_nn, s_nn, 64 * sizeof(int)));
   }
 }
 
@@ -1302,7 +1302,7 @@ void cuda_scalar_part_pull_with_scalar(void)
 extern "C"
 void cuda_scalar_part_free(void)
 {
-  if(SCALAR >= 1 && NPARTS > 0) {
+  if(NPARTS > 0) {
     checkCudaErrors(cudaFree(_s_parts));
   }
 }
@@ -2127,6 +2127,6 @@ void cuda_scalar_update_part(void)
 
     dim3 dim_nparts(t_nparts);
     dim3 num_nparts(b_nparts);
-    update_part_scalar<<<num_nparts, dim_nparts>>>(_parts, _s_parts, ttime, dt, s_k);
+    update_part_scalar<<<num_nparts, dim_nparts>>>(_parts, _s_parts, dt, s_k);
   }
 }

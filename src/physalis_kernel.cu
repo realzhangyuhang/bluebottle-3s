@@ -179,7 +179,8 @@ __global__ void check_nodes(int nparts, part_struct *parts, BC *bc,
 
 __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   real rho_f, real nu, gradP_struct gradP, part_struct *parts, real *pp,
-  real *ur, real *ut, real *up, BC *bc)
+  real *ur, real *ut, real *up, BC *bc,
+  part_struct_scalar *s_parts, real s_alpha, real s_init, g_struct g)
 {
   int node = threadIdx.x;
   int part = blockIdx.x;
@@ -275,7 +276,7 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   // If out out bounds, we'll read good info but trash the results
   i += (_dom.Gcc._is - i) * (i < _dom.Gcc._is);
   j += (_dom.Gcc._js - j) * (j < _dom.Gcc._js);
-  k += (_dom.Gcc._ks - k) * (k < _dom.Gcc._is);
+  k += (_dom.Gcc._ks - k) * (k < _dom.Gcc._ks);
   i += (_dom.Gcc._ie - i) * (i > _dom.Gcc._ie);
   j += (_dom.Gcc._je - j) * (j > _dom.Gcc._je);
   k += (_dom.Gcc._ke - k) * (k > _dom.Gcc._ke);
@@ -304,8 +305,12 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   real ocrossr2 = (oy*zp - oz*yp) * (oy*zp - oz*yp);
   ocrossr2 += (ox*zp - oz*xp) * (ox*zp - oz*xp);
   ocrossr2 += (ox*yp - oy*xp) * (ox*yp - oy*xp);
-  real accdotr = (-gradP.x * irho_f - udot)*xp + (-gradP.y * irho_f - vdot)*yp
-          + (-gradP.z * irho_f - wdot)*zp;
+  real bousiq_x = -s_alpha*(s_parts[part].s - s_init)*g.x;
+  real bousiq_y = -s_alpha*(s_parts[part].s - s_init)*g.y;
+  real bousiq_z = -s_alpha*(s_parts[part].s - s_init)*g.z;
+  real accdotr = (-gradP.x * irho_f - udot + bousiq_x)*xp +
+                 (-gradP.y * irho_f - vdot + bousiq_y)*yp +
+                 (-gradP.z * irho_f - wdot + bousiq_z)*zp;
   pp[node + NNODES*part] -= 0.5 * rho_f * ocrossr2 + rho_f * accdotr;
 
   // Zero if this node intersects wall or is out of bounds
@@ -355,7 +360,7 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   // If out out bounds, we'll read good info but trash the results
   i += (_dom.Gfx._is - i) * (i < _dom.Gfx._is);
   j += (_dom.Gfx._js - j) * (j < _dom.Gfx._js);
-  k += (_dom.Gfx._ks - k) * (k < _dom.Gfx._is);
+  k += (_dom.Gfx._ks - k) * (k < _dom.Gfx._ks);
   i += (_dom.Gfx._ie - i) * (i >= _dom.Gfx._ie);
   j += (_dom.Gfx._je - j) * (j > _dom.Gfx._je);
   k += (_dom.Gfx._ke - k) * (k > _dom.Gfx._ke);
@@ -441,7 +446,7 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   // If out out bounds, we'll read good info but trash the results
   i += (_dom.Gfy._is - i) * (i < _dom.Gfy._is);
   j += (_dom.Gfy._js - j) * (j < _dom.Gfy._js);
-  k += (_dom.Gfy._ks - k) * (k < _dom.Gfy._is);
+  k += (_dom.Gfy._ks - k) * (k < _dom.Gfy._ks);
   i += (_dom.Gfy._ie - i) * (i > _dom.Gfy._ie);
   j += (_dom.Gfy._je - j) * (j >= _dom.Gfy._je);
   k += (_dom.Gfy._ke - k) * (k > _dom.Gfy._ke);
@@ -525,7 +530,7 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   // If out out bounds, we'll read good info but trash the results
   i += (_dom.Gfz._is - i) * (i < _dom.Gfz._is);
   j += (_dom.Gfz._js - j) * (j < _dom.Gfz._js);
-  k += (_dom.Gfz._ks - k) * (k < _dom.Gfz._is);
+  k += (_dom.Gfz._ks - k) * (k < _dom.Gfz._ks);
   i += (_dom.Gfz._ie - i) * (i > _dom.Gfz._ie);
   j += (_dom.Gfz._je - j) * (j > _dom.Gfz._je);
   k += (_dom.Gfz._ke - k) * (k >= _dom.Gfz._ke);
@@ -741,7 +746,8 @@ __global__ void compute_lambs_coeffs(part_struct *parts, real relax,
 }
 
 __global__ void calc_forces(part_struct *parts, int nparts,
-  real gradPx, real gradPy, real gradPz, real rho_f, real mu, real nu)
+  real gradPx, real gradPy, real gradPz, real rho_f, real mu, real nu,
+  part_struct_scalar *s_parts, real s_alpha, real s_init, g_struct g)
 {
   int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle number
 
@@ -752,13 +758,17 @@ __global__ void calc_forces(part_struct *parts, int nparts,
     real N10 = sqrt(3./4./PI);
     real N11 = sqrt(3./8./PI);
 
-    parts[pp].Fx = rho_f * vol * (parts[pp].udot + gradPx * irho_f)
+    real bousiq_x = -s_alpha*(s_parts[pp].s - s_init)*g.x;
+    real bousiq_y = -s_alpha*(s_parts[pp].s - s_init)*g.y;
+    real bousiq_z = -s_alpha*(s_parts[pp].s - s_init)*g.z;
+
+    parts[pp].Fx = rho_f * vol * (parts[pp].udot + gradPx * irho_f - bousiq_x)
       - PI * mu * nu * 2.*N11 * (parts[pp].pnm_re[2]
       + 6.*parts[pp].phinm_re[2]);
-    parts[pp].Fy = rho_f * vol * (parts[pp].vdot + gradPy * irho_f)
+    parts[pp].Fy = rho_f * vol * (parts[pp].vdot + gradPy * irho_f - bousiq_y)
       + PI * mu * nu * 2.*N11 * (parts[pp].pnm_im[2]
       + 6.*parts[pp].phinm_im[2]);
-    parts[pp].Fz = rho_f * vol * (parts[pp].wdot + gradPz * irho_f)
+    parts[pp].Fz = rho_f * vol * (parts[pp].wdot + gradPz * irho_f - bousiq_z)
       + PI * mu * nu * N10 * (parts[pp].pnm_re[1]
       + 6.*parts[pp].phinm_re[1]);
 

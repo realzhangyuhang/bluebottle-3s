@@ -281,7 +281,8 @@ __global__ void BC_s_W_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if((tj < _dom.Gcc.jn) && (tk < _dom.Gcc.kn))
-    array[GCC_LOC(_dom.Gcc._isb, tj + 1, tk + 1, s1b, s2b)] = bc_s;
+    array[GCC_LOC(_dom.Gcc._isb, tj + 1, tk + 1, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(_dom.Gcc._is, tj + 1, tk + 1, s1b, s2b)];
 }
 
 __global__ void BC_s_W_N(real *array, real bc_s)
@@ -306,7 +307,8 @@ __global__ void BC_s_E_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if ((tj < _dom.Gcc.jn) && (tk < _dom.Gcc.kn))
-    array[GCC_LOC(_dom.Gcc._ieb, tj + 1, tk + 1, s1b, s2b)] = bc_s;
+    array[GCC_LOC(_dom.Gcc._ieb, tj + 1, tk + 1, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(_dom.Gcc._ie, tj + 1, tk + 1, s1b, s2b)];
 }
 
 __global__ void BC_s_E_N(real *array, real bc_s)
@@ -331,7 +333,8 @@ __global__ void BC_s_N_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if ((ti < _dom.Gcc.in) && (tk < _dom.Gcc.kn))
-    array[GCC_LOC(ti + 1, _dom.Gcc._jeb, tk + 1, s1b, s2b)] = bc_s;
+    array[GCC_LOC(ti + 1, _dom.Gcc._jeb, tk + 1, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(ti + 1, _dom.Gcc._je, tk + 1, s1b, s2b)];
 }
 
 __global__ void BC_s_N_N(real *array, real bc_s)
@@ -356,7 +359,8 @@ __global__ void BC_s_S_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if ((ti < _dom.Gcc.in) && (tk < _dom.Gcc.kn))
-    array[GCC_LOC(ti + 1, _dom.Gcc._jsb, tk + 1, s1b, s2b)] = bc_s;
+    array[GCC_LOC(ti + 1, _dom.Gcc._jsb, tk + 1, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(ti + 1, _dom.Gcc._js, tk + 1, s1b, s2b)];
 }
 
 __global__ void BC_s_S_N(real *array, real bc_s)
@@ -381,7 +385,8 @@ __global__ void BC_s_B_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if ((ti < _dom.Gcc.in) && (tj < _dom.Gcc.jn))
-    array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._ksb, s1b, s2b)] = bc_s;
+    array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._ksb, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._ks, s1b, s2b)];
 }
 
 __global__ void BC_s_B_N(real *array, real bc_s)
@@ -406,7 +411,8 @@ __global__ void BC_s_T_D(real *array, real bc_s)
   int s2b = _dom.Gcc.s2b;
 
   if ((ti < _dom.Gcc.in) && (tj < _dom.Gcc.jn))
-    array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._keb, s1b, s2b)] = bc_s;
+    array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._keb, s1b, s2b)] = 2. * bc_s -
+      array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._ke, s1b, s2b)];
 }
 
 __global__ void BC_s_T_N(real *array, real bc_s)
@@ -430,8 +436,8 @@ __global__ void forcing_boussinesq_x(real alpha, real gx, real s_init, real *s, 
 
   if(tj < _dom.Gfx.jnb && tk < _dom.Gfx.knb) {
     for(i = _dom.Gfx._isb + 1; i <= _dom.Gfx._ieb - 1; i++) {
-	  C0 = GCC_LOC(i-1, tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
-	  C1 = GCC_LOC(i  , tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C0 = GCC_LOC(i-1, tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C1 = GCC_LOC(i  , tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       fx[GFX_LOC(i, tj, tk, _dom.Gfx.s1b, _dom.Gfx.s2b)]
         += - gx * alpha * (0.5*(s[C0]+s[C1]) - s_init);
     }
@@ -446,8 +452,8 @@ __global__ void forcing_boussinesq_y(real alpha, real gy, real s_init, real *s, 
 
   if(tk < _dom.Gfy.knb && ti < _dom.Gfy.inb) {
     for(j = _dom.Gfy._jsb + 1; j <= _dom.Gfy._jeb - 1; j++) {
-	  C0 = GCC_LOC(ti, j-1, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
-	  C1 = GCC_LOC(ti, j  , tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C0 = GCC_LOC(ti, j-1, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C1 = GCC_LOC(ti, j  , tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       fy[GFY_LOC(ti, j, tk, _dom.Gfy.s1b, _dom.Gfy.s2b)]
         += - gy * alpha * (0.5*(s[C0]+s[C1]) - s_init);
     }
@@ -462,8 +468,8 @@ __global__ void forcing_boussinesq_z(real alpha, real gz, real s_init, real *s, 
 
   if(ti < _dom.Gfz.inb && tj < _dom.Gfz.jnb) {
     for(k = _dom.Gfz._ksb + 1; k <= _dom.Gfz._keb - 1; k++) {
-	  C0 = GCC_LOC(ti, tj, k-1, _dom.Gcc.s1b, _dom.Gcc.s2b);
-	  C1 = GCC_LOC(ti, tj, k  , _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C0 = GCC_LOC(ti, tj, k-1, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      C1 = GCC_LOC(ti, tj, k  , _dom.Gcc.s1b, _dom.Gcc.s2b);
       fz[GFZ_LOC(ti, tj, k, _dom.Gfz.s1b, _dom.Gfz.s2b)]
         += - gz * alpha * (0.5*(s[C0]+s[C1]) - s_init);
     }
@@ -697,7 +703,7 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
   // If out out bounds, we'll read good info but trash the results
   i += (_dom.Gcc._is - i) * (i < _dom.Gcc._is);
   j += (_dom.Gcc._js - j) * (j < _dom.Gcc._js);
-  k += (_dom.Gcc._ks - k) * (k < _dom.Gcc._is);
+  k += (_dom.Gcc._ks - k) * (k < _dom.Gcc._ks);
   i += (_dom.Gcc._ie - i) * (i > _dom.Gcc._ie);
   j += (_dom.Gcc._je - j) * (j > _dom.Gcc._je);
   k += (_dom.Gcc._ke - k) * (k > _dom.Gcc._ke);
@@ -732,7 +738,7 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
          + (parts[part].nodes[node] == TOP_WALL)   *bc_s->sTD
          - s_parts[part].s;
 
-  // set actual node value based on whether it is interfered with
+  // set actual node value based on whether it is interfered with wall
   ss[node + NNODES*part] =
          (1 - oob) * ((parts[part].nodes[node] == -1) * ss[node + NNODES*part]
                     + (parts[part].nodes[node] <  -1) * sswall);
@@ -1439,6 +1445,24 @@ __global__ void scalar_part_BC(real *s, int *phase, int *phase_shell,
   }
 }
 
+__global__ void scalar_part_fill(real *s, int *phase,
+  part_struct_scalar *s_parts)
+{
+  int ti = blockDim.x*blockIdx.x + threadIdx.x + DOM_BUF;
+  int tj = blockDim.y*blockIdx.y + threadIdx.y + DOM_BUF;
+  int CC, P;
+  real sp = 0.;
+
+  if (ti <= _dom.Gcc._ie && tj <= _dom.Gcc._je) {
+    for (int k = _dom.Gcc._ks; k <= _dom.Gcc._ke; k++) {
+      CC = GCC_LOC(ti, tj, k, _dom.Gcc.s1b, _dom.Gcc.s2b);
+      P = phase[CC];
+      if(P > -1) sp = s_parts[P].s;
+      s[CC] = sp * (P > -1) + s[CC] * (P == -1);
+    }
+  }
+}
+
 __global__ void scalar_compute_coeffs(part_struct *parts,
   part_struct_scalar *s_parts, int s_ncoeffs_max, int nparts,
   real *int_Ys_re, real *int_Ys_im)
@@ -1546,7 +1570,7 @@ __global__ void scalar_store_coeffs(part_struct_scalar *s_parts, int nparts,
 }
 
 __global__ void update_part_scalar(part_struct *parts,
-  part_struct_scalar *s_parts, real time, real dt, real s_k)
+  part_struct_scalar *s_parts, real dt, real s_k)
 {
   int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle index
 
@@ -1554,22 +1578,4 @@ __global__ void update_part_scalar(part_struct *parts,
   real m = vol * parts[pp].rho;
   // prepare s for next timestep
   s_parts[pp].s += (float)s_parts[pp].update * s_parts[pp].q * s_k * dt / m /s_parts[pp].cp;
-}
-
-__global__ void scalar_part_fill(real *s, int *phase,
-  part_struct_scalar *s_parts)
-{
-  int ti = blockDim.x*blockIdx.x + threadIdx.x + DOM_BUF;
-  int tj = blockDim.y*blockIdx.y + threadIdx.y + DOM_BUF;
-  int CC, P;
-  real sp = 0.;
-
-  if (ti <= _dom.Gcc._ie && tj <= _dom.Gcc._je) {
-    for (int k = _dom.Gcc._ks; k <= _dom.Gcc._ke; k++) {
-      CC = GCC_LOC(ti, tj, k, _dom.Gcc.s1b, _dom.Gcc.s2b);
-      P = phase[CC];
-      if(P > -1) sp = s_parts[P].s;
-      s[CC] = sp * (P > -1) + s[CC] * (P == -1);
-    }
-  }
 }

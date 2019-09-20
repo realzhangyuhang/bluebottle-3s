@@ -153,7 +153,7 @@ __global__ void scalar_store_coeffs(part_struct_scalar *s_parts, int nparts,
   int s_ncoeffs_max);
 
 __global__ void update_part_scalar(part_struct *parts,
-  part_struct_scalar *s_parts, real time, real dt, real s_k);
+  part_struct_scalar *s_parts, real dt, real s_k);
 
 __global__ void scalar_part_fill(real *s, int *phase,
   part_struct_scalar *s_parts);

@@ -374,8 +374,8 @@ void parts_read_input(void)
         parts[ncount].spring_l = spring_l;
         parts[ncount].translating = translating;
         parts[ncount].rotating = rotating;
-        s_parts[ncount].s = tmp_s;
-        s_parts[ncount].update = tmp_update;
+        s_parts[ncount].s = tmp_s * (SCALAR >= 1);
+        s_parts[ncount].update = tmp_update * (SCALAR >= 1);
         s_parts[ncount].cp = tmp_cp;
         s_parts[ncount].rs = tmp_rs;
         s_parts[ncount].order = tmp_s_order;
@@ -548,10 +548,6 @@ void parts_init(void)
     // initialize collision counter
     parts[i].ncoll_part = 0;
     parts[i].ncoll_wall = 0;
-  }
-
-  if (SCALAR >= 1) {
-    scalar_part_init();
   }
 
   #ifdef DDEBUG
