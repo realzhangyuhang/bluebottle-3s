@@ -590,40 +590,76 @@ __global__ void scalar_check_nodes(part_struct *parts,
 
   // We use <= for E,N,T and > for W,S,B -- allows us to do [start,end) on all 
   // subdomains regardless of bc
-  parts[part].nodes[node] += (WEST_WALL + 1) *    // set equal to WEST_WALL...
+  parts[part].nodes[node] += (WEST_WALL_D + 1) *    // set equal to WEST_WALL_D...
               (x - _dom.xs < 0) *                 // if outside domain &
               (_dom.I == DOM->Is) *                // if edge domain & DIRICHLET
               (bc_s->sW == DIRICHLET)*
               (parts[part].nodes[node] == -1);
 
-  parts[part].nodes[node] += (EAST_WALL + 1) * 
+  parts[part].nodes[node] += (WEST_WALL_N + 1) *
+              (x - _dom.xs < 0) *
+              (_dom.I == DOM->Is) *
+              (bc_s->sW == NEUMANN)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (EAST_WALL_D + 1) *
               (x - _dom.xe >= 0) *
               (_dom.I == DOM->Ie) *
               (bc_s->sE == DIRICHLET)*
               (parts[part].nodes[node] == -1);
 
-  parts[part].nodes[node] += (SOUTH_WALL + 1) *
+  parts[part].nodes[node] += (EAST_WALL_N + 1) *
+              (x - _dom.xe >= 0) *
+              (_dom.I == DOM->Ie) *
+              (bc_s->sE == NEUMANN)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (SOUTH_WALL_D + 1) *
               (y - _dom.ys < 0) *
               (_dom.J == DOM->Js) *
               (bc_s->sS == DIRICHLET)*
               (parts[part].nodes[node] == -1);
 
-  parts[part].nodes[node] += (NORTH_WALL + 1) *
+  parts[part].nodes[node] += (SOUTH_WALL_N + 1) *
+              (y - _dom.ys < 0) *
+              (_dom.J == DOM->Js) *
+              (bc_s->sS == NEUMANN)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (NORTH_WALL_D + 1) *
               (y - _dom.ye >= 0) *
               (_dom.J == DOM->Je) *
               (bc_s->sN == DIRICHLET)*
               (parts[part].nodes[node] == -1);
 
-  parts[part].nodes[node] += (BOTTOM_WALL + 1) *
+  parts[part].nodes[node] += (NORTH_WALL_N + 1) *
+              (y - _dom.ye >= 0) *
+              (_dom.J == DOM->Je) *
+              (bc_s->sN == NEUMANN)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (BOTTOM_WALL_D + 1) *
               (z - _dom.zs < 0) *
               (_dom.K == DOM->Ks) *
               (bc_s->sB == DIRICHLET)*
               (parts[part].nodes[node] == -1);
 
-  parts[part].nodes[node] += (TOP_WALL + 1) *
+  parts[part].nodes[node] += (BOTTOM_WALL_N + 1) *
+              (z - _dom.zs < 0) *
+              (_dom.K == DOM->Ks) *
+              (bc_s->sB == NEUMANN)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (TOP_WALL_D + 1) *
               (z - _dom.ze >= 0) *
               (_dom.K == DOM->Ke) *
               (bc_s->sT == DIRICHLET)*
+              (parts[part].nodes[node] == -1);
+
+  parts[part].nodes[node] += (TOP_WALL_N + 1) *
+              (z - _dom.ze >= 0) *
+              (_dom.K == DOM->Ke) *
+              (bc_s->sT == NEUMANN)*
               (parts[part].nodes[node] == -1);
 }
 
@@ -637,10 +673,10 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
   real ddy = 1. / _dom.dy;
   real ddz = 1. / _dom.dz;
 
-  real sswall;
+  real sswalli, sswallj, sswallk;
 
   int i, j, k;  // index of cells containing node
-  int oob;      // out of bounds indicator, 1 if out of bounds else 0
+  int oobi, oobj, oobk;  // out of bounds indicator, 1 if out of bounds else 0
   int C, Ce, Cw, Cn, Cs, Ct, Cb;  // cell indices
   real xx, yy, zz;  // Cartesian location of s
 
@@ -694,10 +730,10 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
   k -= _dom.Gcc.ksb;
 
   /* Interpolate Scalar */
-  // Find if out-of-bounds -- 1 if oob, 0 if in bounds
-  oob = i < _dom.Gcc._is || i >= _dom.Gcc._ie ||
-        j < _dom.Gcc._js || j >= _dom.Gcc._je ||
-        k < _dom.Gcc._ks || k >= _dom.Gcc._ke;
+  // Find if out-of-bounds in three directions -- 1 if oob, 0 if in bounds
+  oobi = i < _dom.Gcc._is || i > _dom.Gcc._ie;
+  oobj = j < _dom.Gcc._js || j > _dom.Gcc._je;
+  oobk = k < _dom.Gcc._ks || k > _dom.Gcc._ke;
 
   // Correct indices so we don't have out-of-bounds reads
   // If out out bounds, we'll read good info but trash the results
@@ -730,18 +766,30 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
     - s_parts[part].s;
 
   // set sswall equal to interfering wall s
-  sswall = (parts[part].nodes[node] == WEST_WALL)  *bc_s->sWD
-         + (parts[part].nodes[node] == EAST_WALL)  *bc_s->sED
-         + (parts[part].nodes[node] == SOUTH_WALL) *bc_s->sSD
-         + (parts[part].nodes[node] == NORTH_WALL) *bc_s->sND
-         + (parts[part].nodes[node] == BOTTOM_WALL)*bc_s->sBD
-         + (parts[part].nodes[node] == TOP_WALL)   *bc_s->sTD
-         - s_parts[part].s;
+  sswalli = (parts[part].nodes[node] == WEST_WALL_D) * bc_s->sWD
+          + (parts[part].nodes[node] == EAST_WALL_D) * bc_s->sED
+          + (parts[part].nodes[node] == WEST_WALL_N) * s[Cw]
+          + (parts[part].nodes[node] == EAST_WALL_N) * s[Ce]
+          - s_parts[part].s;
+  sswallj = (parts[part].nodes[node] == SOUTH_WALL_D) * bc_s->sSD
+          + (parts[part].nodes[node] == NORTH_WALL_D) * bc_s->sND
+          + (parts[part].nodes[node] == SOUTH_WALL_N) * s[Cs]
+          + (parts[part].nodes[node] == NORTH_WALL_N) * s[Cn]
+          - s_parts[part].s;
+  sswallk = (parts[part].nodes[node] == BOTTOM_WALL_D)* bc_s->sBD
+          + (parts[part].nodes[node] == TOP_WALL_D)   * bc_s->sTD
+          + (parts[part].nodes[node] == BOTTOM_WALL_N)* s[Cb]
+          + (parts[part].nodes[node] == TOP_WALL_N)   * s[Ct]
+          - s_parts[part].s;
 
   // set actual node value based on whether it is interfered with wall
+  // (1) not oob: interpolated value
+  // (2) oob: (2a) wall, sswall (2b) not wall, zero
   ss[node + NNODES*part] =
-         (1 - oob) * ((parts[part].nodes[node] == -1) * ss[node + NNODES*part]
-                    + (parts[part].nodes[node] <  -1) * sswall);
+    (1-oobi) * (1-oobj) * (1-oobk) * (parts[part].nodes[node] == -1) * ss[node + NNODES*part]
+    + oobi * (1-oobj) * (1-oobk) * (parts[part].nodes[node] < -1) * sswalli
+    + (1-oobi) * oobj * (1-oobk) * (parts[part].nodes[node] < -1) * sswallj
+    + (1-oobi) * (1-oobj) * oobk * (parts[part].nodes[node] < -1) * sswallk;
 }
 
 __global__ void scalar_lebedev_quadrature(part_struct *parts,

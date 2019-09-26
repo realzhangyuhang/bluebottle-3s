@@ -295,6 +295,7 @@ int main(int argc, char *argv[])
 
         // integrate scalar convection-diffusion equation
         cuda_scalar_solve();
+        mpi_cuda_exchange_Gcc(_s);
 
         // apply b.c. on s, domain and part
         cuda_scalar_BC(_s);
@@ -328,8 +329,9 @@ int main(int argc, char *argv[])
         }
       }
 
-      // store scalar field variables for next timestep
+      // store and update
       cuda_store_s();
+      cuda_scalar_update_part();
     }
 
     if (NPARTS > 0) {
@@ -361,7 +363,6 @@ int main(int argc, char *argv[])
     if (NPARTS > 0) {
       cuda_update_part_position();
       if (SCALAR >= 1) {
-        cuda_scalar_update_part();
         cuda_scalar_transfer_parts_i();
         cuda_scalar_transfer_parts_j();
         cuda_scalar_transfer_parts_k();

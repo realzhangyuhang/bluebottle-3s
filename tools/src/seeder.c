@@ -139,6 +139,11 @@ void seeder_read_input(void)
   fret = fscanf(infile, "spring_l %lf\n", &spring_l);
   fret = fscanf(infile, "translating %d\n", &translating);
   fret = fscanf(infile, "rotating %d\n", &rotating);
+  fret = fscanf(infile, "s %lf\n", &ss);
+  fret = fscanf(infile, "update %d\n", &update);
+  fret = fscanf(infile, "cp %lf\n", &cp);
+  fret = fscanf(infile, "rs %lf\n", &srs);
+  fret = fscanf(infile, "s_order %d\n", &sorder);
 
   // Check input
   int check = 0;
@@ -201,17 +206,22 @@ void domain_read_input(void)
   fret = fscanf(infile, "PHYSICAL PARAMETERS\n");
   fret = fscanf(infile, "rho_f %lf\n", &fbuf);
   fret = fscanf(infile, "nu %lf\n", &fbuf);
+  fret = fscanf(infile, "s_D %lf\n", &fbuf);
+  fret = fscanf(infile, "s_k %lf\n", &fbuf);
+  fret = fscanf(infile, "s_alpha %lf\n", &fbuf);
   fret = fscanf(infile, "\n");
 
   fret = fscanf(infile, "SIMULATION PARAMETERS\n");
   fret = fscanf(infile, "duration %lf\n", &fbuf);
   fret = fscanf(infile, "CFL %lf\n", &fbuf);
+  fret = fscanf(infile, "SCALAR %lf\n", &fbuf);
   fret = fscanf(infile, "pp_max_iter %lf\n", &fbuf);
   fret = fscanf(infile, "pp_residual %lf\n", &fbuf);
   fret = fscanf(infile, "lamb_max_iter %lf\n", &fbuf);
   fret = fscanf(infile, "lamb_residual %lf\n", &fbuf);
   fret = fscanf(infile, "lamb_relax %lf\n", &fbuf);
   fret = fscanf(infile, "lamb_cut %lf\n", &fbuf);
+  fret = fscanf(infile, "s_lamb_cut %lf\n", &fbuf);
   fret = fscanf(infile, "\n");
 
   fret = fscanf(infile, "BOUNDARY CONDITIONS\n");
@@ -432,6 +442,11 @@ void seed_array(void)
     fprintf(ofile, "spring_l %f\n", spring_l);
     fprintf(ofile, "translating %d\n", translating);
     fprintf(ofile, "rotating %d\n", rotating);
+    fprintf(ofile, "s %f\n", ss);
+    fprintf(ofile, "update %d\n", update);
+    fprintf(ofile, "cp %f\n", cp);
+    fprintf(ofile, "rs %f\n", srs);
+    fprintf(ofile, "s_order %d\n", sorder);
   }
 
   // close the file
@@ -1002,6 +1017,11 @@ void seeder(void)
     fprintf(ofile, "spring_l %f\n", spring_l);
     fprintf(ofile, "translating %d\n", translating);
     fprintf(ofile, "rotating %d\n", rotating);
+    fprintf(ofile, "s %f\n", ss);
+    fprintf(ofile, "update %d\n", update);
+    fprintf(ofile, "cp %f\n", cp);
+    fprintf(ofile, "rs %f\n", srs);
+    fprintf(ofile, "s_order %d\n", sorder);
   }
 
   // close the file
@@ -1042,6 +1062,11 @@ double spring_x, spring_y, spring_z;
 double spring_l;
 int translating;
 int rotating;
+double ss;
+int update;
+double cp;
+double srs;
+int sorder;
 
 dom_struct dom;
 part_struct *parts;
