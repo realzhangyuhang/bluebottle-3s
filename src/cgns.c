@@ -1174,8 +1174,8 @@ void cgns_particles(real dtout)
       }
 
       if(SCALAR >= 1) {
-        ss[n] = s_parts[n].s;
-        sq[n] = s_parts[n].q;
+        ss[n] = parts[n].s;
+        sq[n] = parts[n].q;
          a00_r[n] = 0;
          a00_i[n] = 0;
         a1_1_r[n] = 0;
@@ -1226,62 +1226,62 @@ void cgns_particles(real dtout)
          a43_i[n] = 0;
          a44_r[n] = 0;
          a44_i[n] = 0;
-        switch(s_parts[n].ncoeff) {
+        switch(parts[n].sncoeff) {
           case(25):
-             a44_r[n] = s_parts[n].anm_re[24];
-             a44_i[n] = s_parts[n].anm_im[24];
-             a43_r[n] = s_parts[n].anm_re[23];
-             a43_i[n] = s_parts[n].anm_im[23];
-             a42_r[n] = s_parts[n].anm_re[22];
-             a42_i[n] = s_parts[n].anm_im[22];
-             a41_r[n] = s_parts[n].anm_re[21];
-             a41_i[n] = s_parts[n].anm_im[21];
-             a40_r[n] = s_parts[n].anm_re[20];
-             a40_i[n] = s_parts[n].anm_im[20];
-            a4_1_r[n] = s_parts[n].anm_re[19];
-            a4_1_i[n] = s_parts[n].anm_im[19];
-            a4_2_r[n] = s_parts[n].anm_re[18];
-            a4_2_i[n] = s_parts[n].anm_im[18];
-            a4_3_r[n] = s_parts[n].anm_re[17];
-            a4_3_i[n] = s_parts[n].anm_im[17];
-            a4_4_r[n] = s_parts[n].anm_re[16];
-            a4_4_i[n] = s_parts[n].anm_im[16];
+             a44_r[n] = parts[n].anm_re[24];
+             a44_i[n] = parts[n].anm_im[24];
+             a43_r[n] = parts[n].anm_re[23];
+             a43_i[n] = parts[n].anm_im[23];
+             a42_r[n] = parts[n].anm_re[22];
+             a42_i[n] = parts[n].anm_im[22];
+             a41_r[n] = parts[n].anm_re[21];
+             a41_i[n] = parts[n].anm_im[21];
+             a40_r[n] = parts[n].anm_re[20];
+             a40_i[n] = parts[n].anm_im[20];
+            a4_1_r[n] = parts[n].anm_re[19];
+            a4_1_i[n] = parts[n].anm_im[19];
+            a4_2_r[n] = parts[n].anm_re[18];
+            a4_2_i[n] = parts[n].anm_im[18];
+            a4_3_r[n] = parts[n].anm_re[17];
+            a4_3_i[n] = parts[n].anm_im[17];
+            a4_4_r[n] = parts[n].anm_re[16];
+            a4_4_i[n] = parts[n].anm_im[16];
           case(16):
-             a33_r[n] = s_parts[n].anm_re[15];
-             a33_i[n] = s_parts[n].anm_im[15];
-             a32_r[n] = s_parts[n].anm_re[14];
-             a32_i[n] = s_parts[n].anm_im[14];
-             a31_r[n] = s_parts[n].anm_re[13];
-             a31_i[n] = s_parts[n].anm_im[13];
-             a30_r[n] = s_parts[n].anm_re[12];
-             a30_i[n] = s_parts[n].anm_im[12];
-            a3_1_r[n] = s_parts[n].anm_re[11];
-            a3_1_i[n] = s_parts[n].anm_im[11];
-            a3_2_r[n] = s_parts[n].anm_re[10];
-            a3_2_i[n] = s_parts[n].anm_im[10];
-             a3_3_r[n] = s_parts[n].anm_re[9];
-             a3_3_i[n] = s_parts[n].anm_im[9];
+             a33_r[n] = parts[n].anm_re[15];
+             a33_i[n] = parts[n].anm_im[15];
+             a32_r[n] = parts[n].anm_re[14];
+             a32_i[n] = parts[n].anm_im[14];
+             a31_r[n] = parts[n].anm_re[13];
+             a31_i[n] = parts[n].anm_im[13];
+             a30_r[n] = parts[n].anm_re[12];
+             a30_i[n] = parts[n].anm_im[12];
+            a3_1_r[n] = parts[n].anm_re[11];
+            a3_1_i[n] = parts[n].anm_im[11];
+            a3_2_r[n] = parts[n].anm_re[10];
+            a3_2_i[n] = parts[n].anm_im[10];
+             a3_3_r[n] = parts[n].anm_re[9];
+             a3_3_i[n] = parts[n].anm_im[9];
           case(9):
-             a22_r[n] = s_parts[n].anm_re[8];
-             a22_i[n] = s_parts[n].anm_im[8];
-             a21_r[n] = s_parts[n].anm_re[7];
-             a21_i[n] = s_parts[n].anm_im[7];
-             a20_r[n] = s_parts[n].anm_re[6];
-             a20_i[n] = s_parts[n].anm_im[6];
-            a2_1_r[n] = s_parts[n].anm_re[5];
-            a2_1_i[n] = s_parts[n].anm_im[5];
-            a2_2_r[n] = s_parts[n].anm_re[4];
-            a2_2_i[n] = s_parts[n].anm_im[4];
+             a22_r[n] = parts[n].anm_re[8];
+             a22_i[n] = parts[n].anm_im[8];
+             a21_r[n] = parts[n].anm_re[7];
+             a21_i[n] = parts[n].anm_im[7];
+             a20_r[n] = parts[n].anm_re[6];
+             a20_i[n] = parts[n].anm_im[6];
+            a2_1_r[n] = parts[n].anm_re[5];
+            a2_1_i[n] = parts[n].anm_im[5];
+            a2_2_r[n] = parts[n].anm_re[4];
+            a2_2_i[n] = parts[n].anm_im[4];
           case(4):
-             a11_r[n] = s_parts[n].anm_re[3];
-             a11_i[n] = s_parts[n].anm_im[3];
-             a10_r[n] = s_parts[n].anm_re[2];
-             a10_i[n] = s_parts[n].anm_im[2];
-            a1_1_r[n] = s_parts[n].anm_re[1];
-            a1_1_i[n] = s_parts[n].anm_im[1];
+             a11_r[n] = parts[n].anm_re[3];
+             a11_i[n] = parts[n].anm_im[3];
+             a10_r[n] = parts[n].anm_re[2];
+             a10_i[n] = parts[n].anm_im[2];
+            a1_1_r[n] = parts[n].anm_re[1];
+            a1_1_i[n] = parts[n].anm_im[1];
           case(1):
-             a00_r[n] = s_parts[n].anm_re[0];
-             a00_i[n] = s_parts[n].anm_im[0];
+             a00_r[n] = parts[n].anm_re[0];
+             a00_i[n] = parts[n].anm_im[0];
         }
       }
     }

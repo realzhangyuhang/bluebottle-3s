@@ -48,25 +48,6 @@ real *_s_conv;
 real *_s_diff0;
 real *_s_diff;
 
-part_struct_scalar *s_parts;
-part_struct_scalar *_s_parts;
-
-part_struct_scalar *_send_s_parts_e;
-part_struct_scalar *_send_s_parts_w;
-part_struct_scalar *_send_s_parts_n;
-part_struct_scalar *_send_s_parts_s;
-part_struct_scalar *_send_s_parts_t;
-part_struct_scalar *_send_s_parts_b;
-
-part_struct_scalar *_recv_s_parts_e;
-part_struct_scalar *_recv_s_parts_w;
-part_struct_scalar *_recv_s_parts_n;
-part_struct_scalar *_recv_s_parts_s;
-part_struct_scalar *_recv_s_parts_t;
-part_struct_scalar *_recv_s_parts_b;
-
-MPI_Datatype mpi_s_part_struct;
-
 void scalar_init_fields(void)
 {
   // rng seed must be different for processes
@@ -105,143 +86,26 @@ void scalar_part_init(void)
 {
   for (int i = 0; i < nparts; i++) {
 
-    s_parts[i].rs = s_parts[i].rs * parts[i].r;
-    s_parts[i].q = 0.0;
+    parts[i].srs = parts[i].srs * parts[i].r;
+    parts[i].q = 0.0;
 
-    s_parts[i].ncoeff = 0;
+    parts[i].sncoeff = 0;
     // for each n, -n <= m <= n
-    for(int j = 0; j <= s_parts[i].order; j++) {
-      s_parts[i].ncoeff += 2*j + 1;
+    for(int j = 0; j <= parts[i].sorder; j++) {
+      parts[i].sncoeff += 2*j + 1;
     }
-    if(s_parts[i].ncoeff > S_MAX_COEFFS) {
+    if(parts[i].sncoeff > S_MAX_COEFFS) {
       printf("Maximum order is 4.");
       exit(EXIT_FAILURE);
     }
 
     for (int j = 0; j < S_MAX_COEFFS; j++) {
-      s_parts[i].anm_re[j] = 0.;
-      s_parts[i].anm_im[j] = 0.;
-      s_parts[i].anm_re0[j] = 0.;
-      s_parts[i].anm_im0[j] = 0.;
+      parts[i].anm_re[j] = 0.;
+      parts[i].anm_im[j] = 0.;
+      parts[i].anm_re0[j] = 0.;
+      parts[i].anm_im0[j] = 0.;
     }
   }
-}
-
-void mpi_send_s_parts_i(void)
-{
-  // MPI Info hints
-  //  - no_locks: window is never locked, e.g. only active sync
-  //  - same_disp_unit: all use sizeof(part_struct)
-  //  can also use SAME_DISP_UNIT
-  MPI_Info no_locks;
-  MPI_Info_create(&no_locks);
-  MPI_Info_set(no_locks, "no_locks", "true");
-  MPI_Info_set(no_locks, "same_disp_unit", "true");
-
-  // Open MPI Windows for _recv_parts{e,w}
-  MPI_Win_create(_recv_s_parts_e, nparts_recv[EAST] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_e);
-  MPI_Win_create(_recv_s_parts_w, nparts_recv[WEST] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_w);
-
-  // Fence and put _send_parts -> _recv_parts
-  MPI_Win_fence(0, parts_recv_win_e);
-  MPI_Win_fence(0, parts_recv_win_w);
-
-  MPI_Put(_send_s_parts_e, nparts_send[EAST], mpi_s_part_struct, dom[rank].e,
-    0, nparts_send[EAST], mpi_s_part_struct, parts_recv_win_w);
-
-  MPI_Put(_send_s_parts_w, nparts_send[WEST], mpi_s_part_struct, dom[rank].w,
-    0, nparts_send[WEST], mpi_s_part_struct, parts_recv_win_e);
-
-  MPI_Win_fence(0, parts_recv_win_e);
-  MPI_Win_fence(0, parts_recv_win_w);
-
-  // Free
-  MPI_Win_free(&parts_recv_win_e);
-  MPI_Win_free(&parts_recv_win_w);
-
-  // Free the info we provided
-  MPI_Info_free(&no_locks);
-}
-
-void mpi_send_s_parts_j(void)
-{
-  // MPI Info hints
-  //  - no_locks: window is never locked, e.g. only active sync
-  //  - same_disp_unit: all use sizeof(part_struct)
-  //  can also use SAME_DISP_UNIT
-  MPI_Info no_locks;
-  MPI_Info_create(&no_locks);
-  MPI_Info_set(no_locks, "no_locks", "true");
-  MPI_Info_set(no_locks, "same_disp_unit", "true");
-
-  // Open MPI Windows for _recv_parts{n,s}
-  MPI_Win_create(_recv_s_parts_n, nparts_recv[NORTH] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_n);
-  MPI_Win_create(_recv_s_parts_s, nparts_recv[SOUTH] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_s);
-
-  // Fence and put _send_parts -> _recv_parts
-  MPI_Win_fence(0, parts_recv_win_n);
-  MPI_Win_fence(0, parts_recv_win_s);
-
-  MPI_Put(_send_s_parts_n, nparts_send[NORTH], mpi_s_part_struct, dom[rank].n,
-    0, nparts_send[NORTH], mpi_s_part_struct, parts_recv_win_s);
-  MPI_Put(_send_s_parts_s, nparts_send[SOUTH], mpi_s_part_struct, dom[rank].s,
-    0, nparts_send[SOUTH], mpi_s_part_struct, parts_recv_win_n);
-
-  MPI_Win_fence(0, parts_recv_win_n);
-  MPI_Win_fence(0, parts_recv_win_s);
-
-  // Free
-  MPI_Win_free(&parts_recv_win_n);
-  MPI_Win_free(&parts_recv_win_s);
-
-  // Free the info we provided
-  MPI_Info_free(&no_locks);
-}
-
-void mpi_send_s_parts_k(void)
-{
-  // MPI Info hints
-  //  - no_locks: window is never locked, e.g. only active sync
-  //  - same_disp_unit: all use sizeof(part_struct)
-  //  can also use SAME_DISP_UNIT
-  MPI_Info no_locks;
-  MPI_Info_create(&no_locks);
-  MPI_Info_set(no_locks, "no_locks", "true");
-  MPI_Info_set(no_locks, "same_disp_unit", "true");
-
-  // Open MPI Windows for _recv_parts{t,b}
-  MPI_Win_create(_recv_s_parts_t, nparts_recv[TOP] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_t);
-  MPI_Win_create(_recv_s_parts_b, nparts_recv[BOTTOM] * sizeof(part_struct_scalar),
-    sizeof(part_struct_scalar), MPI_INFO_NULL, MPI_COMM_WORLD, &parts_recv_win_b);
-
-  // Fence and put _send_parts -> _recv_parts
-  MPI_Win_fence(0, parts_recv_win_t);
-  MPI_Win_fence(0, parts_recv_win_b);
-
-  MPI_Put(_send_s_parts_t, nparts_send[TOP], mpi_s_part_struct, dom[rank].t,
-    0, nparts_send[TOP], mpi_s_part_struct, parts_recv_win_b);
-  MPI_Put(_send_s_parts_b, nparts_send[BOTTOM], mpi_s_part_struct, dom[rank].b,
-    0, nparts_send[BOTTOM], mpi_s_part_struct, parts_recv_win_t);
-
-  MPI_Win_fence(0, parts_recv_win_t);
-  MPI_Win_fence(0, parts_recv_win_b);
-
-  // Free
-  MPI_Win_free(&parts_recv_win_t);
-  MPI_Win_free(&parts_recv_win_b);
-
-  // Free the info we provided
-  MPI_Info_free(&no_locks);
-}
-
-void scalar_part_free(void)
-{
-  free(s_parts);
 }
 
 void mpi_send_s_psums_i(void)

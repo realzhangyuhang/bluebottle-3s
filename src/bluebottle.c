@@ -95,15 +95,13 @@ int main(int argc, char *argv[])
   /* Allocate particles on device */
   cuda_part_malloc_dev();
   cuda_part_push();
-  cuda_scalar_part_malloc_dev();
-  cuda_scalar_part_push();
   count_mem();
 
   /* Fill ghost bins for first time step */
   if (NPARTS > 0) {
-    cuda_scalar_transfer_parts_i();
-    cuda_scalar_transfer_parts_j();
-    cuda_scalar_transfer_parts_k();
+    cuda_transfer_parts_i();
+    cuda_transfer_parts_j();
+    cuda_transfer_parts_k();
   }
 
   /* Push initial fields to device and exchange initial condition */
@@ -130,7 +128,9 @@ int main(int argc, char *argv[])
   mpi_cuda_exchange_Gfy(_v);
   mpi_cuda_exchange_Gfz(_w);
   if (SCALAR >= 1) {
+    cuda_scalar_BC(_s);
     cuda_scalar_BC(_s0);
+    mpi_cuda_exchange_Gcc(_s);
     mpi_cuda_exchange_Gcc(_s0);
   }
 
@@ -362,15 +362,9 @@ int main(int argc, char *argv[])
     /* Move particles */
     if (NPARTS > 0) {
       cuda_update_part_position();
-      if (SCALAR >= 1) {
-        cuda_scalar_transfer_parts_i();
-        cuda_scalar_transfer_parts_j();
-        cuda_scalar_transfer_parts_k();
-      } else {
-        cuda_transfer_parts_i();
-        cuda_transfer_parts_j();
-        cuda_transfer_parts_k();
-      }
+      cuda_transfer_parts_i();
+      cuda_transfer_parts_j();
+      cuda_transfer_parts_k();
     }
 
     /* Rebuild cages with new positions */
@@ -407,7 +401,6 @@ int main(int argc, char *argv[])
   if (SCALAR >= 1) {
     cuda_scalar_free();
   }
-  cuda_scalar_part_free();
   cuda_part_free();
   cuda_dom_free();
 
@@ -417,7 +410,6 @@ int main(int argc, char *argv[])
   /* Free host memory */
   domain_free();
   part_free();
-  scalar_part_free();
 
   /* End MPI */
   mpi_end();

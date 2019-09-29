@@ -3079,7 +3079,6 @@ void out_restart(void)
     fwrite(s_conv0, sizeof(real), dom[rank].Gcc.s3b, rest);
     fwrite(s_diff, sizeof(real), dom[rank].Gcc.s3b, rest);
     fwrite(s_diff0, sizeof(real), dom[rank].Gcc.s3b, rest);
-    fwrite(s_parts, sizeof(part_struct_scalar), nparts_subdom, rest);
     fwrite(&s_ncoeffs_max, sizeof(int), 1, rest);
   }
   //fwrite(&rec_particle_ttime_out, sizeof(real), 1, rest);
@@ -3176,11 +3175,6 @@ void in_restart(void)
     fread(s_conv0, sizeof(real), dom[rank].Gcc.s3b, infile);
     fread(s_diff, sizeof(real), dom[rank].Gcc.s3b, infile);
     fread(s_diff0, sizeof(real), dom[rank].Gcc.s3b, infile);
-
-    free(s_parts);
-    s_parts = (part_struct_scalar*) malloc(nparts * sizeof(part_struct_scalar));
-    fread(s_parts, sizeof(part_struct_scalar), nparts_subdom, infile);
-
     fread(&s_ncoeffs_max, sizeof(int), 1, infile);
   }
   //fwrite(phase, sizeof(int), dom[rank].Gcc.s3b, infile);

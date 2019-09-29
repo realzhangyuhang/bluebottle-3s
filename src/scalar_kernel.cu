@@ -1,277 +1,6 @@
 #include "cuda_physalis.h"
 #include "cuda_scalar.h"
 
-__global__ void pack_s_parts_e(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int tj = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tk = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFX indices
-  int s1b = _bins.Gcc.jnb;
-  int s2b = s1b * _bins.Gcc.knb;
-
-  if (tj < _bins.Gcc.jnb && tk < _bins.Gcc.knb) {
-    cbin = GFX_LOC(_bins.Gcc._ie, tj, tk, s1b, s2b);
-    c2b = tj + tk * _bins.Gcc.jnb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void pack_s_parts_w(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int tj = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tk = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFX indices
-  int s1b = _bins.Gcc.jnb;
-  int s2b = s1b * _bins.Gcc.knb;
-
-  if (tj < _bins.Gcc.jnb && tk < _bins.Gcc.knb) {
-    cbin = GFX_LOC(_bins.Gcc._is, tj, tk, s1b, s2b);
-    c2b = tj + tk * _bins.Gcc.jnb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void pack_s_parts_n(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int tk = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int ti = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFY indices
-  int s1b = _bins.Gcc.knb;
-  int s2b = s1b * _bins.Gcc.inb;
-
-  if (tk < _bins.Gcc.knb && ti < _bins.Gcc.inb) {
-    cbin = GFY_LOC(ti, _bins.Gcc._je, tk, s1b, s2b);
-    c2b = tk + ti * _bins.Gcc.knb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void pack_s_parts_s(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int tk = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int ti = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFY indices
-  int s1b = _bins.Gcc.knb;
-  int s2b = s1b * _bins.Gcc.inb;
-
-  if (tk < _bins.Gcc.knb && ti < _bins.Gcc.inb) {
-    cbin = GFY_LOC(ti, _bins.Gcc._js, tk, s1b, s2b);
-    c2b = tk + ti * _bins.Gcc.knb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void pack_s_parts_t(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int ti = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tj = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFZ indices
-  int s1b = _bins.Gcc.inb;
-  int s2b = s1b * _bins.Gcc.jnb;
-
-  if (ti < _bins.Gcc.inb && tj < _bins.Gcc.jnb) {
-    cbin = GFZ_LOC(ti, tj, _bins.Gcc._ke, s1b, s2b);
-    c2b = ti + tj * _bins.Gcc.inb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void pack_s_parts_b(part_struct_scalar *send_parts, part_struct_scalar *parts,
-  int *offset, int *bin_start, int *bin_count, int *part_ind)
-{
-  int ti = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tj = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;       // bin index
-  int c2b;        // bin index in 2-d plane
-  int pp;         // particle index
-
-  // Custom GFZ indices
-  int s1b = _bins.Gcc.inb;
-  int s2b = s1b * _bins.Gcc.jnb;
-
-  if (ti < _bins.Gcc.inb && tj < _bins.Gcc.jnb) {
-    cbin = GFZ_LOC(ti, tj, _bins.Gcc._ks, s1b, s2b);
-    c2b = ti + tj * _bins.Gcc.inb;
-
-    // Loop through each bin's particles and add to send_parts
-    // Each bin is offset by offset[cbin] (from excl. prefix scan)
-    // Each particle is then offset from that
-    for (int i = 0; i < bin_count[cbin]; i++) {
-      pp = part_ind[bin_start[cbin] + i];
-      send_parts[offset[c2b] + i] = parts[pp];
-    }
-  }
-}
-
-__global__ void copy_central_bin_s_parts_i(part_struct_scalar *tmp_parts,
-  part_struct_scalar *parts, int *bin_start, int *bin_count, int *part_ind,
-  int *offset)
-{
-  int tj = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tk = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;             // bin index
-  int pp;               // particle index
-  int dest;             // destination in tmp_parts
-
-  // Custom GFX indices
-  int s1b = _bins.Gcc.jnb;
-  int s2b = s1b * _bins.Gcc.knb;
-
-  if (tj < _bins.Gcc.jnb && tk < _bins.Gcc.knb) {
-    // Loop over i-planes
-    for (int i = _bins.Gcc._is; i <= _bins.Gcc._ie; i++) {
-      cbin = GFX_LOC(i, tj, tk, s1b, s2b);
-
-
-      for (int n = 0; n < bin_count[cbin]; n++) {
-        pp = part_ind[bin_start[cbin] + n];
-        dest = offset[cbin] + n;
-
-        tmp_parts[dest] = parts[pp];
-      }
-    }
-  }
-}
-
-__global__ void copy_central_bin_s_parts_j(part_struct_scalar *tmp_parts,
-  part_struct_scalar *parts, int *bin_start, int *bin_count, int *part_ind,
-  int *offset)
-{
-  int tk = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int ti = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;             // bin index
-  int pp;               // particle index
-  int dest;             // destination in tmp_parts
-
-  // Custom GFY indices
-  int s1b = _bins.Gcc.knb;
-  int s2b = s1b * _bins.Gcc.inb;
-
-  if (tk < _bins.Gcc.knb && ti < _bins.Gcc.inb) {
-    // Loop over j-planes
-    for (int j = _bins.Gcc._js; j <= _bins.Gcc._je; j++) {
-      cbin = GFY_LOC(ti, j, tk, s1b, s2b);
-
-      for (int n = 0; n < bin_count[cbin]; n++) {
-        pp = part_ind[bin_start[cbin] + n];
-        dest = offset[cbin] + n;
-
-        tmp_parts[dest] = parts[pp];
-      }
-    }
-  }
-}
-
-__global__ void copy_central_bin_s_parts_k(part_struct_scalar *tmp_parts,
-  part_struct_scalar *parts, int *bin_start, int *bin_count, int *part_ind,
-  int *offset)
-{
-  int ti = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tj = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;             // bin index
-  int pp;               // particle index
-  int dest;             // destination in tmp_parts
-
-  // Custom GFZ indices
-  int s1b = _bins.Gcc.inb;
-  int s2b = s1b * _bins.Gcc.jnb;
-
-  if (ti < _bins.Gcc.inb && tj < _bins.Gcc.jnb) {
-    // Loop over j-planes
-    for (int k = _bins.Gcc._ks; k <= _bins.Gcc._ke; k++) {
-      cbin = GFZ_LOC(ti, tj, k, s1b, s2b);
-
-      for (int n = 0; n < bin_count[cbin]; n++) {
-        pp = part_ind[bin_start[cbin] + n];
-        dest = offset[cbin] + n;
-
-        tmp_parts[dest] = parts[pp];
-      }
-    }
-  }
-}
-
-__global__ void copy_ghost_bin_s_parts(part_struct_scalar *tmp_parts,
-  part_struct_scalar *recv_parts, int nparts_recv, int offset, int plane, dom_struct *DOM)
-{
-  int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle index
-  int dest;
-
-  if (pp < nparts_recv) {
-    dest = offset + pp;
-    tmp_parts[dest] = recv_parts[pp];
-  }
-}
-
 __global__ void BC_s_W_D(real *array, real bc_s)
 {
   int tj = blockDim.x*blockIdx.x + threadIdx.x;
@@ -476,36 +205,6 @@ __global__ void forcing_boussinesq_z(real alpha, real gz, real s_init, real *s, 
   }
 }
 
-__global__ void copy_subdom_parts_with_scalar(part_struct *tmp_parts, part_struct *parts,
-  part_struct_scalar *tmp_s_parts, part_struct_scalar *s_parts,
-  int *bin_start, int *bin_count, int *part_ind, int *bin_offset)
-{
-  int ti = blockIdx.x * blockDim.x + threadIdx.x; // bin index 
-  int tj = blockIdx.y * blockDim.y + threadIdx.y;
-
-  int cbin;             // bin index
-  int pp;               // particle index
-  int dest;             // destination in tmp_parts
-
-  // Custom GFZ indices
-  int s1b = _bins.Gcc.inb;
-  int s2b = s1b * _bins.Gcc.jnb;
-
-  if (ti < _bins.Gcc.in && tj < _bins.Gcc.jn) {
-    for (int k = _bins.Gcc._ks; k <= _bins.Gcc._ke; k++) {
-      cbin = GFZ_LOC(ti + 1, tj + 1, k, s1b, s2b);
-
-      for (int n = 0; n < bin_count[cbin]; n++) {
-        pp = part_ind[bin_start[cbin] + n];
-        dest = bin_offset[cbin] + n;
-
-        tmp_parts[dest] = parts[pp];
-        tmp_s_parts[dest] = s_parts[pp];
-      }
-    }
-  }
-}
-
 __global__ void scalar_solve(int *phase, real *s0, real *s,
   real *conv, real *diff, real *conv0, real *diff0,
   real *u0, real *v0, real *w0, real D, real dt, real dt0)
@@ -565,8 +264,7 @@ __global__ void scalar_solve(int *phase, real *s0, real *s,
   }
 }
 
-__global__ void scalar_check_nodes(part_struct *parts,
-  part_struct_scalar *s_parts, BC_s *bc_s, dom_struct *DOM)
+__global__ void scalar_check_nodes(part_struct *parts, BC_s *bc_s, dom_struct *DOM)
 {
   int node = threadIdx.x;
   int part = blockIdx.x;
@@ -574,7 +272,7 @@ __global__ void scalar_check_nodes(part_struct *parts,
   /* Convert node (r, theta, phi) to (x, y, z) */
   real xp, yp, zp;  // Cartesian radial vector
   real x, y, z;     // Cartesian location of node
-  rtp2xyz(s_parts[part].rs, _node_t[node], _node_p[node], &xp, &yp, &zp);
+  rtp2xyz(parts[part].srs, _node_t[node], _node_p[node], &xp, &yp, &zp);
 
   /* shift from particle center */
   x = xp + parts[part].x;
@@ -664,7 +362,7 @@ __global__ void scalar_check_nodes(part_struct *parts,
 }
 
 __global__ void scalar_interpolate_nodes(real *s, real *ss,
-  part_struct *parts, part_struct_scalar *s_parts, BC_s *bc_s)
+  part_struct *parts, BC_s *bc_s)
 {
   int node = threadIdx.x;
   int part = blockIdx.x;
@@ -683,7 +381,7 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
   // convert node (r, theta, phi) to (x, y, z)
   real xp, yp, zp;  // Cartesian radial vector
   real x, y, z;     // Cartesian location of node
-  rtp2xyz(s_parts[part].rs, _node_t[node], _node_p[node], &xp, &yp, &zp);
+  rtp2xyz(parts[part].srs, _node_t[node], _node_p[node], &xp, &yp, &zp);
 
   // shift from particle center
   x = xp + parts[part].x;
@@ -763,24 +461,24 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
   real dsdy = 0.5*(s[Cn] - s[Cs]) * ddy;
   real dsdz = 0.5*(s[Ct] - s[Cb]) * ddz;
   ss[node + NNODES*part] = s[C] + dsdx*(x - xx) + dsdy*(y - yy) + dsdz*(z - zz)
-    - s_parts[part].s;
+    - parts[part].s;
 
   // set sswall equal to interfering wall s
   sswalli = (parts[part].nodes[node] == WEST_WALL_D) * bc_s->sWD
           + (parts[part].nodes[node] == EAST_WALL_D) * bc_s->sED
           + (parts[part].nodes[node] == WEST_WALL_N) * s[Cw]
           + (parts[part].nodes[node] == EAST_WALL_N) * s[Ce]
-          - s_parts[part].s;
+          - parts[part].s;
   sswallj = (parts[part].nodes[node] == SOUTH_WALL_D) * bc_s->sSD
           + (parts[part].nodes[node] == NORTH_WALL_D) * bc_s->sND
           + (parts[part].nodes[node] == SOUTH_WALL_N) * s[Cs]
           + (parts[part].nodes[node] == NORTH_WALL_N) * s[Cn]
-          - s_parts[part].s;
+          - parts[part].s;
   sswallk = (parts[part].nodes[node] == BOTTOM_WALL_D)* bc_s->sBD
           + (parts[part].nodes[node] == TOP_WALL_D)   * bc_s->sTD
           + (parts[part].nodes[node] == BOTTOM_WALL_N)* s[Cb]
           + (parts[part].nodes[node] == TOP_WALL_N)   * s[Ct]
-          - s_parts[part].s;
+          - parts[part].s;
 
   // set actual node value based on whether it is interfered with wall
   // (1) not oob: interpolated value
@@ -792,15 +490,14 @@ __global__ void scalar_interpolate_nodes(real *s, real *ss,
     + (1-oobi) * (1-oobj) * oobk * (parts[part].nodes[node] < -1) * sswallk;
 }
 
-__global__ void scalar_lebedev_quadrature(part_struct *parts,
-  part_struct_scalar *s_parts, int s_ncoeffs_max,
+__global__ void scalar_lebedev_quadrature(part_struct *parts, int s_ncoeffs_max,
   real *ss, real *int_Ys_re, real *int_Ys_im)
 {
   int part = blockIdx.x;
   int coeff = blockIdx.y;
   int node = threadIdx.x;
 
-  if (coeff < s_parts[part].ncoeff) {
+  if (coeff < parts[part].sncoeff) {
     /* Calculate integrand at each node */
     int j = part*NNODES*s_ncoeffs_max + coeff*NNODES + node;
 
@@ -1408,7 +1105,7 @@ __global__ void unpack_s_sums_b(real *sum_recv_b, int *offset, int *bin_start,
 }
 
 __device__ real X_sn(int n, real theta, real phi,
-  int pp, part_struct_scalar *s_parts)
+  int pp, part_struct *parts)
 {
   int coeff = 0;
   for(int j = 0; j < n; j++) coeff += 2*j+1;
@@ -1416,15 +1113,15 @@ __device__ real X_sn(int n, real theta, real phi,
   real sum = 0.;
   for(int m = -n; m <= n; m++) {
     sum += Nnm(n,m)*Pnm(n,m,theta)
-      *(s_parts[pp].anm_re[coeff]*cos(m*phi)
-      - s_parts[pp].anm_im[coeff]*sin(m*phi));
+      *(parts[pp].anm_re[coeff]*cos(m*phi)
+      - parts[pp].anm_im[coeff]*sin(m*phi));
     coeff++;
   }
   return sum;
 }
 
 __global__ void scalar_part_BC(real *s, int *phase, int *phase_shell,
-  part_struct *parts, part_struct_scalar *s_parts)
+  part_struct *parts)
 {
   int ti = blockDim.x*blockIdx.x + threadIdx.x + DOM_BUF;
   int tj = blockDim.y*blockIdx.y + threadIdx.y + DOM_BUF;
@@ -1456,8 +1153,8 @@ __global__ void scalar_part_BC(real *s, int *phase, int *phase_shell,
         Xp = parts[P].x;
         Yp = parts[P].y;
         Zp = parts[P].z;
-        order = s_parts[P].order;
-        sp = s_parts[P].s;
+        order = parts[P].sorder;
+        sp = parts[P].s;
       } else {
         a = (_dom.dx + _dom.dy + _dom.dz) / 3.;
         Xp = (ti-0.5) * _dom.dx + _dom.xs + a;
@@ -1479,7 +1176,7 @@ __global__ void scalar_part_BC(real *s, int *phase, int *phase_shell,
       real ra = r / a;
       ss_tmp = sp;
       for(int n = 0; n <= order; n++) {
-        ss_tmp += (pow(ra,n) - pow(ar,n+1)) * X_sn(n, theta, phi, P, s_parts);
+        ss_tmp += (pow(ra,n) - pow(ar,n+1)) * X_sn(n, theta, phi, P, parts);
       }
 
       // phase_shell = 1 means normal nodes, phase_shell = 0 means pressure nodes
@@ -1494,7 +1191,7 @@ __global__ void scalar_part_BC(real *s, int *phase, int *phase_shell,
 }
 
 __global__ void scalar_part_fill(real *s, int *phase,
-  part_struct_scalar *s_parts)
+  part_struct *parts)
 {
   int ti = blockDim.x*blockIdx.x + threadIdx.x + DOM_BUF;
   int tj = blockDim.y*blockIdx.y + threadIdx.y + DOM_BUF;
@@ -1505,42 +1202,41 @@ __global__ void scalar_part_fill(real *s, int *phase,
     for (int k = _dom.Gcc._ks; k <= _dom.Gcc._ke; k++) {
       CC = GCC_LOC(ti, tj, k, _dom.Gcc.s1b, _dom.Gcc.s2b);
       P = phase[CC];
-      if(P > -1) sp = s_parts[P].s;
+      if(P > -1) sp = parts[P].s;
       s[CC] = sp * (P > -1) + s[CC] * (P == -1);
     }
   }
 }
 
 __global__ void scalar_compute_coeffs(part_struct *parts,
-  part_struct_scalar *s_parts, int s_ncoeffs_max, int nparts,
-  real *int_Ys_re, real *int_Ys_im)
+  int s_ncoeffs_max, int nparts, real *int_Ys_re, real *int_Ys_im)
 {
 
   int coeff = threadIdx.x;
   int part = blockIdx.x;
 
   // precalculate constants
-  real ars = parts[part].r / s_parts[part].rs;
-  real rsa = s_parts[part].rs / parts[part].r;
+  real ars = parts[part].r / parts[part].srs;
+  real rsa = parts[part].srs / parts[part].r;
 
-  if (coeff < s_parts[part].ncoeff && part < nparts) {
+  if (coeff < parts[part].sncoeff && part < nparts) {
     int j = part * NNODES * s_ncoeffs_max + coeff * NNODES + 0;
     int n = _s_nn[coeff];
     real A = pow(rsa, n) - pow(ars, n+1.);
-    s_parts[part].anm_re[coeff] = int_Ys_re[j] / A;
-    s_parts[part].anm_im[coeff] = int_Ys_im[j] / A;
+    parts[part].anm_re[coeff] = int_Ys_re[j] / A;
+    parts[part].anm_im[coeff] = int_Ys_im[j] / A;
 
     __syncthreads();
 
     // calculate heat flux for each particle
     if (coeff == 0) {
-      s_parts[part].q = 2. * sqrt(PI) * parts[part].r * s_parts[part].anm_re[0];
+      parts[part].q = 2. * sqrt(PI) * parts[part].r * parts[part].anm_re[0];
     }
   }
 }
 
 __global__ void scalar_compute_error(real lamb_cut_scalar, int s_ncoeffs_max, int nparts,
-  part_struct_scalar *s_parts, real *s_part_errors)
+  part_struct *parts, real *s_part_errors)
 {
   int part = blockIdx.x;
   int coeff = threadIdx.x;
@@ -1554,11 +1250,11 @@ __global__ void scalar_compute_error(real lamb_cut_scalar, int s_ncoeffs_max, in
 
   if (part < nparts && coeff < s_ncoeffs_max) {
 
-    s_coeffs[coeff + s_ncoeffs_max * 0] = s_parts[part].anm_re[coeff];
-    s_coeffs[coeff + s_ncoeffs_max * 1] = s_parts[part].anm_im[coeff];
+    s_coeffs[coeff + s_ncoeffs_max * 0] = parts[part].anm_re[coeff];
+    s_coeffs[coeff + s_ncoeffs_max * 1] = parts[part].anm_im[coeff];
 
-    s_coeffs0[coeff + s_ncoeffs_max * 0] = s_parts[part].anm_re0[coeff];
-    s_coeffs0[coeff + s_ncoeffs_max * 1] = s_parts[part].anm_im0[coeff];
+    s_coeffs0[coeff + s_ncoeffs_max * 0] = parts[part].anm_re0[coeff];
+    s_coeffs0[coeff + s_ncoeffs_max * 1] = parts[part].anm_im0[coeff];
 
     s_max[coeff] = DBL_MIN;
 
@@ -1606,24 +1302,22 @@ __global__ void scalar_compute_error(real lamb_cut_scalar, int s_ncoeffs_max, in
   }
 }
 
-__global__ void scalar_store_coeffs(part_struct_scalar *s_parts, int nparts,
-  int s_ncoeffs_max)
+__global__ void scalar_store_coeffs(part_struct *parts, int nparts, int s_ncoeffs_max)
 {
   int part = blockIdx.x;
   int coeff = threadIdx.x;
   if (part < nparts && coeff < s_ncoeffs_max) {
-   s_parts[part].anm_re0[coeff] = s_parts[part].anm_re[coeff];
-   s_parts[part].anm_im0[coeff] = s_parts[part].anm_im[coeff];
+   parts[part].anm_re0[coeff] = parts[part].anm_re[coeff];
+   parts[part].anm_im0[coeff] = parts[part].anm_im[coeff];
   }
 }
 
-__global__ void update_part_scalar(part_struct *parts,
-  part_struct_scalar *s_parts, real dt, real s_k)
+__global__ void update_part_scalar(part_struct *parts, real dt, real s_k)
 {
   int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle index
 
   real vol = 4./3. * PI * parts[pp].r*parts[pp].r*parts[pp].r;
   real m = vol * parts[pp].rho;
   // prepare s for next timestep
-  s_parts[pp].s += (float)s_parts[pp].update * s_parts[pp].q * s_k * dt / m /s_parts[pp].cp;
+  parts[pp].s += (float)parts[pp].update * parts[pp].q * s_k * dt / m /parts[pp].cp;
 }

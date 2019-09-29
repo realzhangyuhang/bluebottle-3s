@@ -61,19 +61,6 @@ typedef struct BC_s {
 extern BC_s bc_s;
 extern BC_s *_bc_s;
 
-typedef struct part_struct_scalar {
-  real s;
-  int update;
-  real rs;
-  real q;
-  real cp;
-  int order;
-  int ncoeff;
-  real anm_re[S_MAX_COEFFS];
-  real anm_im[S_MAX_COEFFS];
-  real anm_re0[S_MAX_COEFFS];
-  real anm_im0[S_MAX_COEFFS];
-} part_struct_scalar;
 /*
  * PURPOSE
  * MEMBERS
@@ -111,43 +98,24 @@ extern real *_s_conv;
 extern real *_s_diff0;
 extern real *_s_diff;
 
-extern part_struct_scalar *s_parts;
-extern part_struct_scalar *_s_parts;
-
 extern real *_int_Ys_re;
 extern real *_int_Ys_im;
-
-extern part_struct_scalar *_send_s_parts_e;
-extern part_struct_scalar *_send_s_parts_w;
-extern part_struct_scalar *_send_s_parts_n;
-extern part_struct_scalar *_send_s_parts_s;
-extern part_struct_scalar *_send_s_parts_t;
-extern part_struct_scalar *_send_s_parts_b;
-
-extern part_struct_scalar *_recv_s_parts_e;
-extern part_struct_scalar *_recv_s_parts_w;
-extern part_struct_scalar *_recv_s_parts_n;
-extern part_struct_scalar *_recv_s_parts_s;
-extern part_struct_scalar *_recv_s_parts_t;
-extern part_struct_scalar *_recv_s_parts_b;
-
-extern MPI_Datatype mpi_s_part_struct;
 
 /******************************************************************************/
 void scalar_init_fields(void);
 void scalar_part_init(void);
-void scalar_part_free(void);
+
 void cuda_scalar_malloc_host(void);
 void cuda_scalar_malloc_dev(void);
 void cuda_scalar_push(void);
 void cuda_scalar_pull(void);
 void cuda_scalar_pull_debug(void);
 void cuda_scalar_pull_restart(void);
-void cuda_scalar_part_malloc_dev(void);
-void cuda_scalar_part_push(void);
+
+
 void cuda_scalar_free(void);
-void cuda_scalar_part_free(void);
-void cuda_scalar_part_pull_with_scalar(void);
+
+
 void cuda_scalar_part_BC(real *array);
 void cuda_scalar_part_fill(void);
 void cuda_scalar_solve(void);

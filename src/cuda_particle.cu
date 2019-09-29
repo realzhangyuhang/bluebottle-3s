@@ -1383,8 +1383,8 @@ void cuda_move_parts_sub()
     /* Reset memory */
     checkCudaErrors(cudaMemset(_bin_start, -1, bins.Gcc.s3b * sizeof(int)));
     checkCudaErrors(cudaMemset(_bin_end, -1, bins.Gcc.s3b * sizeof(int)));
-    checkCudaErrors(cudaMemset(_bin_count, 0, bins.Gcc.s3b * sizeof(int)));
-    thrust::device_ptr<int> t_bin_count(_bin_count);
+    //checkCudaErrors(cudaMemset(_bin_count, 0, bins.Gcc.s3b * sizeof(int)));
+    //thrust::device_ptr<int> t_bin_count(_bin_count);
 
     /* Bin particles */
     bin_fill_k<<<num_nparts, dim_nparts>>>(_part_ind, _part_bin, _parts, nparts,
@@ -1415,8 +1415,8 @@ void cuda_move_parts_sub()
       rho_f, nu, interaction_length_ratio, dt, _DOM);
 
     /* Free _part_bin, _part_ind (re-malloc'd in comm functions) */
-    cudaFree(_part_ind);
-    cudaFree(_part_bin);
+    checkCudaErrors(cudaFree(_part_ind));
+    checkCudaErrors(cudaFree(_part_bin));
 
     /* Communicate forces */
     cuda_update_part_forces_i();
@@ -1466,8 +1466,8 @@ void cuda_move_parts_sub()
       rho_f, nu, interaction_length_ratio, dt, _DOM);
   
     /* Free memory */
-    cudaFree(_part_ind);
-    cudaFree(_part_bin);
+    checkCudaErrors(cudaFree(_part_ind));
+    checkCudaErrors(cudaFree(_part_bin));
 
   } // end if (nparts > 1)
 }
@@ -1680,15 +1680,14 @@ extern "C"
 void cuda_part_BC_p(void)
 {
   part_BC_p<<<blocks.Gcc.num_kn, blocks.Gcc.dim_kn>>>(_p0, _rhs_p, _phase,
-    _phase_shell, _parts, mu, nu, dt, dt0, gradP, rho_f, nparts, _s_parts,
-    s_alpha, s_init, g);
+    _phase_shell, _parts, mu, nu, dt, dt0, gradP, rho_f, nparts, s_alpha, s_init, g);
 }
 
 extern "C"
 void cuda_part_p_fill(void)
 {
     part_BC_p_fill<<<blocks.Gcc.num_kn, blocks.Gcc.dim_kn>>>(_p, _phase, _parts,
-      mu, nu, rho_f, gradP, nparts, _s_parts, s_alpha, s_init, g);
+      mu, nu, rho_f, gradP, nparts, s_alpha, s_init, g);
 }
 
 extern "C"
