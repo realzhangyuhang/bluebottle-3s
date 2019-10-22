@@ -965,6 +965,25 @@ void cuda_scalar_update_part(void)
 
     dim3 dim_nparts(t_nparts);
     dim3 num_nparts(b_nparts);
-    update_part_scalar<<<num_nparts, dim_nparts>>>(_parts, dt, s_k);
+    update_part_scalar<<<num_nparts, dim_nparts>>>(_parts, nparts, dt, s_k);
   }
+}
+
+void printMemInfo()
+{
+  size_t free_byte;
+  size_t total_byte;
+  float mb = 1024*1024;
+  cudaError_t cuda_status = cudaMemGetInfo(&free_byte, &total_byte);
+
+  if(cudaSuccess != cuda_status) {
+    printf("Error: cudaMemGetInfo fails, %s\n", cudaGetErrorString(cuda_status));
+    exit(1);
+  }
+
+  printf("GPU memory usage: used = %.2f MB, free = %.2f MB, total = %.2f MB\n",
+    (double)(total_byte - free_byte)/mb,
+    (double)free_byte/mb,
+    (double)total_byte/mb);
+  printf("\n");
 }

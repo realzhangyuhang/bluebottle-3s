@@ -113,7 +113,8 @@ __global__ void scalar_compute_error(real lamb_cut_scalar, int s_ncoeffs_max, in
 __global__ void scalar_store_coeffs(part_struct *parts, int nparts,
   int s_ncoeffs_max);
 
-__global__ void update_part_scalar(part_struct *parts, real dt, real s_k);
+__global__ void update_part_scalar(part_struct *parts, int nparts,
+  real dt, real s_k);
 
 __global__ void scalar_part_fill(real *s, int *phase, part_struct *parts);
 

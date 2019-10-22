@@ -177,6 +177,12 @@ int main(int argc, char *argv[])
       fflush(stdout);
     }
 
+    /* monitoring device memory at the start of each timestep,
+     * this exclude the overhead and could include memory allocated from other program,*/
+    if (rank == 0) {
+      printMemInfo();
+    }
+
     /* Compute forcing and velocity boundary conditions */
     cuda_compute_forcing();
     if (SCALAR >= 1) {

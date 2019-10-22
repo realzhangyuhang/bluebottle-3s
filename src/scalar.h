@@ -138,5 +138,6 @@ void cuda_scalar_partial_sum_k(void);
 void mpi_send_s_psums_i(void);
 void mpi_send_s_psums_j(void);
 void mpi_send_s_psums_k(void);
+void printMemInfo(void);
 
 #endif

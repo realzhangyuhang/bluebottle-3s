@@ -1312,12 +1312,13 @@ __global__ void scalar_store_coeffs(part_struct *parts, int nparts, int s_ncoeff
   }
 }
 
-__global__ void update_part_scalar(part_struct *parts, real dt, real s_k)
+__global__ void update_part_scalar(part_struct *parts, int nparts, real dt, real s_k)
 {
   int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle index
-
-  real vol = 4./3. * PI * parts[pp].r*parts[pp].r*parts[pp].r;
-  real m = vol * parts[pp].rho;
-  // prepare s for next timestep
-  parts[pp].s += (float)parts[pp].update * parts[pp].q * s_k * dt / m /parts[pp].cp;
+  if (pp < nparts) {
+    real vol = 4./3. * PI * parts[pp].r*parts[pp].r*parts[pp].r;
+    real m = vol * parts[pp].rho;
+    // prepare s for next timestep
+    parts[pp].s += (float)parts[pp].update * parts[pp].q * s_k * dt / m /parts[pp].cp;
+  }
 }
