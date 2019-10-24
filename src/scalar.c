@@ -26,7 +26,6 @@ BC_s bc_s;
 BC_s *_bc_s;
 real s_D;
 real s_k;
-real s_perturbation;
 real s_init;
 real s_init_rand;
 real s_alpha;

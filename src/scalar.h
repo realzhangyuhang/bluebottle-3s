@@ -25,11 +25,46 @@
 
 #include "bluebottle.h"
 
-#define S_MAX_COEFFS 25
+/****d* scalar/SNSP
+ * NAME
+ *  SNSP
+ * USAGE
+ */
 #define SNSP 2
-#define SP_YS_RE 0
-#define SP_YS_IM 1
+/* PURPOSE
+ * Defines number of scalar products used for scalar field.
+ ******
+ */
 
+/****d* scalar/SP_YS_RE
+ * NAME
+ *  SP_YS_RE
+ * USAGE
+ */
+#define SP_YS_RE 0
+/* FUNCTION
+ *  Defines scalar product stride for Re(Ylm, s) for indexing in packing array
+ ******
+ */
+
+/****d* scalar/SP_YS_IM
+ * NAME
+ *  SP_YS_IM
+ * USAGE
+ */
+#define SP_YS_IM 1
+/* FUNCTION
+ *  Defines scalar product stride for Im(Ylm, s) for indexing in packing array
+ ******
+ */
+
+/* VARIABLES */
+
+/****s* scalar/BC_s
+ * NAME
+ *  BC_s
+ * TYPE
+ */
 typedef struct BC_s {
   int sW;
   real sWD;
@@ -52,92 +87,627 @@ typedef struct BC_s {
 } BC_s;
 /*
  * PURPOSE
+ *  Carry the type of boundary condition on each side of the domain.  Possible
+ *  types include:
+ *  * PERIODIC
+ *  * DIRICHLET
+ *  * NEUMANN
  * MEMBERS
- * * tW -- the boundary condition type
- * * tWD -- the DIRICHLET boundary conditon value
- * * tWN -- the NEUMANN boundary condition value
+ * * sW -- the scalar boundary condition type
+ * * sWD -- the DIRICHLET boundary conditon value
+ * * sWN -- the NEUMANN boundary condition value
+ * * sE -- the scalar boundary condition type
+ * * sED -- the DIRICHLET boundary conditon value
+ * * sEN -- the NEUMANN boundary condition value
+ * * sN -- the scalar boundary condition type
+ * * sND -- the DIRICHLET boundary conditon value
+ * * sNN -- the NEUMANN boundary condition value
+ * * sS -- the scalar boundary condition type
+ * * sSD -- the DIRICHLET boundary conditon value
+ * * sSN -- the NEUMANN boundary condition value
+ * * sT -- the scalar boundary condition type
+ * * sTD -- the DIRICHLET boundary conditon value
+ * * sTN -- the NEUMANN boundary condition value
+ * * sB -- the scalar boundary condition type
+ * * sBD -- the DIRICHLET boundary conditon value
+ * * sBN -- the NEUMANN boundary condition value
  */
 
+/****v* scalar/bc_s
+ * NAME
+ *  bc_s
+ * TYPE
+ */
 extern BC_s bc_s;
-extern BC_s *_bc_s;
-
 /*
  * PURPOSE
- * MEMBERS
- * * s is the current time step scalar value
- * * update is 1 when the particle's temperature change with fluid, is 0 when particle surface temperature is fixed
- * * rs the integrate surface
- * * q is the intergral of hear flux across the particle surface
- * * cp is the particle specific heat
- * * order is the order to keep lamb solution, equals to index n in Ynm
- * * ncoeff is the corresponding m index in Ynm
-*/
+ *  Create an instance of the struct BC to carry boundary condition types.
+ ******
+ */
 
-extern real s_D; // thermal diffusivity, used in diffusivity term, D\nabla_T^2
-extern real s_k; //thermal conductivity of fluid, s_k = s_D*\rho_f*c_pp
-extern real s_alpha; //coefficient of thermal expansion, used in bousinesq assumption, alpha*gravity*(T-T_ref)
-extern int SCALAR; // SCALAR >= 1: calculate the temperature field
-extern real lamb_cut_scalar; // lamb cut-off for scalar calculation
-extern real s_init; //initial temperature for fluid
+/****v* scalar/_bc_s
+ * NAME
+ *  _bc_s
+ * TYPE
+ */
+extern BC_s *_bc_s;
+/*
+ * PURPOSE
+ *  CUDA device analog for BC bc_s
+ ******
+ */
+
+/****v* scalar/s_D
+ * NAME
+ *  s_D
+ * TYPE
+ */
+extern real s_D;
+/*
+ * PURPOSE
+ *  The fluid thermal diffusivity.
+ ******
+ */
+
+/****v* scalar/s_k
+ * NAME
+ *  s_k
+ * TYPE
+ */
+extern real s_k;
+/*
+ * PURPOSE
+ *  The fluid thermal conductivity.
+ ******
+ */
+
+/****v* scalar/s_alpha
+ * NAME
+ *  s_alpha
+ * TYPE
+ */
+extern real s_alpha;
+/*
+ * PURPOSE
+ *  The fluid thermal expansion coefficient.
+ ******
+ */
+
+/****v* scalar/SCALAR
+ * NAME
+ *  SCALAR
+ * TYPE
+ */
+extern int SCALAR;
+/*
+ * PURPOSE
+ *  Used to determine if scalar is turned on(SCALAR >= 1) or not.
+ ******
+ */
+
+/****v* scalar/lamb_cut_scalar
+ * NAME
+ *  lamb_cut_scalar
+ * TYPE
+ */
+extern real lamb_cut_scalar;
+/*
+ * PURPOSE
+ *  The magnitude below which errors in Lamb's coefficients are ignored,
+ *  compared to the coefficient with greates magnitude. The lower this number,
+ *  the more coefficients will be considered important when computing the error.
+ *  To improve convergence rate, decrease this number. It should never be
+ *  greater than 1e-2.
+ ******
+ */
+
+/****v* scalar/s_init
+ * NAME
+ *  s_init
+ * TYPE
+ */
+extern real s_init;
+/*
+ * PURPOSE
+ *  Initial fluid temperature.
+ ******
+ */
+
+/****v* scalar/s_init_rand
+ * NAME
+ *  s_init_rand
+ * TYPE
+ */
 extern real s_init_rand;
+/*
+ * PURPOSE
+ *  Fluctuation magnitude of initial fluid temperature.
+ ******
+ */
 
-extern real s_perturbation; // the perturbation solution for T by including the effect of rapidly changing particle surface temperature. See JCP paper.
+/****v* scalar/s_ncoeffs_max
+ * NAME
+ *  s_ncoeffs_max
+ * TYPE
+ */
 extern int s_ncoeffs_max;
+/*
+ * PURPOSE
+ *  Maximum particle coefficient size
+ ******
+ */
 
-extern real *s0;
+/****v* scalar/s
+ * NAME
+ *  s
+ * TYPE
+ */
 extern real *s;
-extern real *s_conv0;
-extern real *s_conv;
-extern real *s_diff0;
-extern real *s_diff;
+/*
+ * PURPOSE
+ *   *  Scalar field (grid type Gcc; x-component varies first, then
+ *  y-component, then z-component).
+ ******
+ */
 
-extern real *_s0;
+/****v* scalar/_s
+ * NAME
+ *  _s
+ * TYPE
+ */
 extern real *_s;
-extern real *_s_conv0;
+/*
+ * PURPOSE
+ *  CUDA device analog for s. It is an array on each processor that contains the
+ *  subdomain's field
+ ******
+ */
+
+/****v* scalar/s0
+ * NAME
+ *  s0
+ * TYPE
+ */
+extern real *s0;
+/*
+ * PURPOSE
+ * Host s stored from the previous timestep.
+ ******
+ */
+
+/****v* scalar/_s0
+ * NAME
+ *  _s0
+ * TYPE
+ */
+extern real *_s0;
+/*
+ * PURPOSE
+ * CUDA device analog for s stored from the previous timestep.
+ ******
+ */
+
+/****v* scalar/s_conv
+ * NAME
+ *  s_conv
+ * TYPE
+ */
+extern real *s_conv;
+/*
+ * PURPOSE
+ *  Scalar convection field.
+ ******
+ */
+
+/****v* scalar/_s_conv
+ * NAME
+ *  _s_conv
+ * TYPE
+ */
 extern real *_s_conv;
-extern real *_s_diff0;
+/*
+ * PURPOSE
+ *  CUDA device analog for s_conv. It is an array on each processor that
+ *  contains the subdomain's field
+ ******
+ */
+
+/****v* scalar/s_conv0
+ * NAME
+ *  s_conv0
+ * TYPE
+ */
+extern real *s_conv0;
+/*
+ * PURPOSE
+ *  Host array to store the previous scalar convection solution
+ *  for use in the next Adams-Bashforth step.
+ ******
+ */
+
+/****v* scalar/_s_conv0
+ * NAME
+ *  _s_conv0
+ * TYPE
+ */
+extern real *_s_conv0;
+/*
+ * PURPOSE
+ * CUDA device analog for s_conv0.
+ ******
+ */
+
+/****v* scalar/s_diff
+ * NAME
+ *  s_diff
+ * TYPE
+ */
+extern real *s_diff;
+/*
+ * PURPOSE
+ *  Scalar diffusion field.
+ ******
+ */
+
+/****v* scalar/_s_diff
+ * NAME
+ *  _s_diff
+ * TYPE
+ */
 extern real *_s_diff;
+/*
+ * PURPOSE
+ *  CUDA device analog for s_diff. It is an array on each processor that
+ *  contains the subdomain's field
+ ******
+ */
 
+/****v* scalar/s_diff0
+ * NAME
+ *  s_diff0
+ * TYPE
+ */
+extern real *s_diff0;
+/*
+ * PURPOSE
+ *  Host array to store the previous scalar diffusion solution
+ *  for use in the next Adams-Bashforth step.
+ ******
+ */
+
+/****v* scalar/_s_diff0
+ * NAME
+ *  _s_diff0
+ * TYPE
+ */
+extern real *_s_diff0;
+/*
+ * PURPOSE
+ * CUDA device analog for s_diff0.
+ ******
+ */
+
+/****v* scalar/_int_Ys_re
+ * NAME
+ *  _int_Ys_re
+ * TYPE
+ */
 extern real *_int_Ys_re;
+/* FUNCTION
+ * Scalar product Re(Ylm, s) for each particle, coefficient, and node
+ ******
+ */
+
+/****v* scalar/_int_Ys_im
+ * NAME
+ *  _int_Ys_im
+ * TYPE
+ */
 extern real *_int_Ys_im;
+/* FUNCTION
+ * Scalar product Im(Ylm, s) for each particle, coefficient, and node
+ ******
+ */
 
-/******************************************************************************/
+/* FUNCTIONS */
+
+/****f* scalar/scalar_init_fields()
+ * NAME
+ *  scalar_init_fields()
+ * USAGE
+ */
 void scalar_init_fields(void);
+/*
+ * FUNCTION
+ *  Initialize scalar field with given boundary and initial conditions
+ ******
+ */
+
+/****f* scalar/scalar_part_init()
+ * NAME
+ *  scalar_part_init()
+ * USAGE
+ */
 void scalar_part_init(void);
+/*
+ * FUNCTION
+ *  Initialize part_struct for scalar
+ * ARGUMENTS
+ ******
+ */
 
-void cuda_scalar_malloc_host(void);
-void cuda_scalar_malloc_dev(void);
-void cuda_scalar_push(void);
-void cuda_scalar_pull(void);
-void cuda_scalar_pull_debug(void);
-void cuda_scalar_pull_restart(void);
-
-
-void cuda_scalar_free(void);
-
-
-void cuda_scalar_part_BC(real *array);
-void cuda_scalar_part_fill(void);
-void cuda_scalar_solve(void);
-void cuda_scalar_lamb(void);
-real cuda_scalar_lamb_err(void);
-void cuda_store_s(void);
-void cuda_scalar_update_part(void);
-
-void cuda_scalar_BC(real *array);
-void cuda_scalar_transfer_parts_i(void);
-void cuda_scalar_transfer_parts_j(void);
-void cuda_scalar_transfer_parts_k(void);
-void mpi_send_s_parts_i(void);
-void mpi_send_s_parts_j(void);
-void mpi_send_s_parts_k(void);
-void cuda_compute_boussinesq(void);
-void cuda_scalar_partial_sum_i(void);
-void cuda_scalar_partial_sum_j(void);
-void cuda_scalar_partial_sum_k(void);
+/****f* scalar/mpi_send_s_psums_i()
+ * NAME
+ *  mpi_send_s_psums_i()
+ * USAGE
+ */
 void mpi_send_s_psums_i(void);
+/*
+ * FUNCTION
+ *  Send scalar partial sums in the east/west directions to the appropriate domain
+ ******
+ */
+
+/****f* scalar/mpi_send_s_psums_j()
+ * NAME
+ *  mpi_send_s_psums_j()
+ * USAGE
+ */
 void mpi_send_s_psums_j(void);
+/*
+ * FUNCTION
+ *  Send scalar partial sums in the north/south directions to the appropriate domain
+ ******
+ */
+
+/****f* scalar/mpi_send_s_psums_k()
+ * NAME
+ *  mpi_send_s_psums_k()
+ * USAGE
+ */
 void mpi_send_s_psums_k(void);
+/*
+ * FUNCTION
+ *  Send scalar partial sums in the top/bottom directions to the appropriate domain
+ ******
+ */
+
+/****f* scalar/cuda_scalar_malloc_host()
+ * NAME
+ *  cuda_scalar_malloc_host()
+ * USAGE
+ */
+void cuda_scalar_malloc_host(void);
+/*
+ * FUNCTION
+ *  Allocate scalar memory on host
+ ******
+ */
+
+/****f* scalar/cuda_scalar_malloc_dev()
+ * NAME
+ *  cuda_scalar_malloc_dev()
+ * USAGE
+ */
+void cuda_scalar_malloc_dev(void);
+/*
+ * FUNCTION
+ *  Allocate scalar memory on device
+ ******
+ */
+
+/****f* scalar/cuda_scalar_push()
+ * NAME
+ *  cuda_scalar_push()
+ * USAGE
+ */
+void cuda_scalar_push(void);
+/*
+ * FUNCTION
+ *  Copy scalar fields from host to device
+ ******
+ */
+
+/****f* scalar/cuda_scalar_pull()
+ * NAME
+ *  cuda_scalar_pull()
+ * USAGE
+ */
+void cuda_scalar_pull(void);
+/*
+ * FUNCTION
+ *  Copy s from device to host
+ ******
+ */
+
+/****f* scalar/cuda_scalar_pull_debug()
+ * NAME
+ *  cuda_scalar_pull_debug()
+ * USAGE
+ */
+void cuda_scalar_pull_debug(void);
+/*
+ * FUNCTION
+ *  Copy s_conv, s_diff from device to host
+ ******
+ */
+
+/****f* scalar/cuda_scalar_pull_restart()
+ * NAME
+ *  cuda_scalar_pull_restart()
+ * USAGE
+ */
+void cuda_scalar_pull_restart(void);
+/*
+ * FUNCTION
+ *  Copy s, s_conv, s_diff, s0, s_conv0, s_diff0 from device to host
+ ******
+ */
+
+/****f* scalar/cuda_scalar_free()
+ * NAME
+ *  cuda_scalar_free()
+ * USAGE
+ */
+void cuda_scalar_free(void);
+/*
+ * FUNCTION
+ *  Free device memory for scalar on device and device memory reference
+ *  pointers on host.
+ ******
+ */
+
+/****f* scalar/cuda_compute_boussinesq()
+ * NAME
+ *  cuda_compute_boussinesq()
+ * USAGE
+ */
+void cuda_compute_boussinesq(void);
+/*
+ * FUNCTION
+ *  Set up the boussinesq forcing array for this time step
+ ******
+ */
+
+/****f* scalar/cuda_scalar_BC()
+ * NAME
+ *  cuda_scalar_BC()
+ * USAGE
+ */
+void cuda_scalar_BC(real *array);
+/*
+ * FUNCTION
+ *  Enforce scalar boundary conditions on *array on domain boundaries.
+ ******
+ */
+
+/****f* scalar/cuda_scalar_part_BC()
+ * NAME
+ *  cuda_scalar_part_BC()
+ * USAGE
+ */
+void cuda_scalar_part_BC(real *array);
+/*
+ * FUNCTION
+ *  Enforce scalar boundary conditions on *array on particle boundaries.
+ ******
+ */
+
+/****f* scalar/cuda_scalar_part_fill()
+ * NAME
+ *  cuda_scalar_part_fill()
+ * USAGE
+ */
+void cuda_scalar_part_fill(void);
+/*
+ * FUNCTION
+ *  Fill part cells with particle temperature value.
+ ******
+ */
+
+/****f* scalar/cuda_scalar_solve()
+ * NAME
+ *  cuda_scalar_solve()
+ * USAGE
+ */
+void cuda_scalar_solve(void);
+/*
+ * FUNCTION
+ *  Integrate temperature equation.
+ ******
+ */
+
+/****f* scalar/cuda_scalar_partial_sum_i()
+ * NAME
+ *  cuda_scalar_partial_sum_i()
+ * USAGE
+ */
+void cuda_scalar_partial_sum_i(void);
+/* FUNCTION
+ *  Communicate scalar partial sums in the i direction
+ ******
+ */
+
+/****f* scalar/cuda_scalar_partial_sum_j()
+ * NAME
+ *  cuda_scalar_partial_sum_j()
+ * USAGE
+ */
+void cuda_scalar_partial_sum_j(void);
+/* FUNCTION
+ *  Communicate scalar partial sums in the j direction
+ ******
+ */
+
+/****f* scalar/cuda_scalar_partial_sum_k()
+ * NAME
+ *  cuda_scalar_partial_sum_k()
+ * USAGE
+ */
+void cuda_scalar_partial_sum_k(void);
+/* FUNCTION
+ *  Communicate scalar partial sums in the k direction
+ ******
+ */
+
+/****f* scalar/cuda_scalar_lamb()
+ * NAME
+ *  cuda_scalar_lamb()
+ * USAGE
+ */
+void cuda_scalar_lamb(void);
+/* FUNCTION
+ *  Compute the scalar Lamb's coefficients
+ ******
+ */
+
+/****f* scalar/cuda_scalar_lamb_err()
+ * NAME
+ *  cuda_scalar_lamb_err()
+ * USAGE
+ */
+real cuda_scalar_lamb_err(void);
+/*
+ * FUNCTION
+ *  Compute the error between the current and previous sets of scalar Lamb's
+ *  coefficients.
+ ******
+ */
+
+/****f* scalar/cuda_store_s()
+ * NAME
+ *  cuda_store_s()
+ * USAGE
+ */
+void cuda_store_s(void);
+/*
+ * FUNCTION
+ *  Store the _s, _s_conv, _s_diff to _s0, _s_conv0, _s_diff0.
+ ******
+ */
+
+/****f* scalar/cuda_scalar_update_part()
+ * NAME
+ *  cuda_scalar_update_part()
+ * USAGE
+ */
+void cuda_scalar_update_part(void);
+/*
+ * FUNCTION
+ *  Update particle temperature.
+ ******
+ */
+
+/****f* scalar/printMemInfo()
+ * NAME
+ *  printMemInfo()
+ * USAGE
+ */
 void printMemInfo(void);
+/*
+ * FUNCTION
+ *  Print current total device memory usage.
+ ******
+ */
 
 #endif

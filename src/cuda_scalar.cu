@@ -252,7 +252,7 @@ void cuda_scalar_part_fill(void)
 extern "C"
 void cuda_scalar_solve(void)
 {
-  scalar_solve<<<blocks.Gcc.num_in, blocks.Gcc.dim_in>>>(_phase, _s0, _s,
+  scalar_solve<<<blocks.Gcc.num_knb_s, blocks.Gcc.dim_knb_s>>>(_phase, _s0, _s,
     _s_conv, _s_diff, _s_conv0, _s_diff0, _u0, _v0, _w0, s_D, dt, dt0);
 }
 

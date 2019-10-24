@@ -70,7 +70,8 @@
 #define S_MAX_COEFFS 25
 /*
  * PURPOSE
- *  Similar to MAX_COEFFS, but for scalar.
+ *  Define the maximum possible number of coefficients to use given that the
+ *  quadrature can handle up to 4th order. This one is for scalar.
  ******
  */
 

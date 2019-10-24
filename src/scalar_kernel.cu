@@ -209,58 +209,94 @@ __global__ void scalar_solve(int *phase, real *s0, real *s,
   real *conv, real *diff, real *conv0, real *diff0,
   real *u0, real *v0, real *w0, real D, real dt, real dt0)
 {
-  int tj = blockIdx.x * blockDim.x + threadIdx.x + DOM_BUF;
-  int tk = blockIdx.y * blockDim.y + threadIdx.y + DOM_BUF;
+  __shared__ real s_s0[MAX_THREADS_DIM * MAX_THREADS_DIM];  // s back
+  __shared__ real s_s1[MAX_THREADS_DIM * MAX_THREADS_DIM];  // s center
+  __shared__ real s_s2[MAX_THREADS_DIM * MAX_THREADS_DIM];  // s forward
+  __shared__ real s_u[MAX_THREADS_DIM * MAX_THREADS_DIM];  // u
+  __shared__ real s_v[MAX_THREADS_DIM * MAX_THREADS_DIM];  // v
+  __shared__ real s_w0[MAX_THREADS_DIM * MAX_THREADS_DIM];  // w back
+  __shared__ real s_w1[MAX_THREADS_DIM * MAX_THREADS_DIM];  // w forward
 
-  // working constants
+  // shared memory indices
+  int ti = threadIdx.x;
+  int tj = threadIdx.y;
+  int sc = ti + tj*blockDim.y;
+
+  // s3b subdomain indices
+  // the extra 2*blockIdx.X terms implement the necessary overlapping of shmem
+  int i = blockIdx.x*blockDim.x + threadIdx.x - 2*blockIdx.x;
+  int j = blockIdx.y*blockDim.y + threadIdx.y - 2*blockIdx.y;
+
+  // working variables
   real ab0 = 0.5 * dt / dt0;
   real ab = 1. + ab0;
-  int C, Cx0, Cx1, Cy0, Cy1, Cz0, Cz1;
-  int fx0, fx1, fy0, fy1, fz0, fz1;
-  real conv_x, conv_y, conv_z;
-  real diff_x, diff_y, diff_z;
+  real ddx = 1. / _dom.dx;
+  real ddy = 1. / _dom.dy;
+  real ddz = 1. / _dom.dz;
+  real ss, ss_diff, ss_conv;
 
-  // loop over x-plane
-  if(tj <= _dom.Gcc._je && tk <= _dom.Gcc._ke) {
-    for(int i = _dom.Gcc._is; i <= _dom.Gcc._ie; i++) {
-      C   = GCC_LOC(i,   tj,   tk,   _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cx0 = GCC_LOC(i-1, tj,   tk,   _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cx1 = GCC_LOC(i+1, tj,   tk,   _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cy0 = GCC_LOC(i,   tj-1, tk,   _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cy1 = GCC_LOC(i,   tj+1, tk,   _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cz0 = GCC_LOC(i,   tj,   tk-1, _dom.Gcc.s1b, _dom.Gcc.s2b);
-      Cz1 = GCC_LOC(i,   tj,   tk+1, _dom.Gcc.s1b, _dom.Gcc.s2b);
-      fx0 = GFX_LOC(i,   tj,   tk,   _dom.Gfx.s1b, _dom.Gfx.s2b);
-      fx1 = GFX_LOC(i+1, tj,   tk,   _dom.Gfx.s1b, _dom.Gfx.s2b);
-      fy0 = GFY_LOC(i,   tj,   tk,   _dom.Gfy.s1b, _dom.Gfy.s2b);
-      fy1 = GFY_LOC(i,   tj+1, tk,   _dom.Gfy.s1b, _dom.Gfy.s2b);
-      fz0 = GFZ_LOC(i,   tj,   tk,   _dom.Gfz.s1b, _dom.Gfz.s2b);
-      fz1 = GFZ_LOC(i,   tj,   tk+1, _dom.Gfz.s1b, _dom.Gfz.s2b);
+  for(int k = _dom.Gcc._ks; k <= _dom.Gcc._ke; k++) {
+
+    // load into shared memory
+    if ((i >= _dom.Gcc._isb && i <= _dom.Gcc._ieb) &&
+        (j >= _dom.Gcc._jsb && j <= _dom.Gcc._jeb)) {
+      s_s0[sc] = s0[GCC_LOC(i, j, k-1, _dom.Gcc.s1b, _dom.Gcc.s2b)];
+      s_s1[sc] = s0[GCC_LOC(i, j, k,   _dom.Gcc.s1b, _dom.Gcc.s2b)];
+      s_s2[sc] = s0[GCC_LOC(i, j, k+1, _dom.Gcc.s1b, _dom.Gcc.s2b)];
+      s_u[sc] = u0[GFX_LOC(i, j, k, _dom.Gfx.s1b, _dom.Gfx.s2b)];
+      s_v[sc] = v0[GFY_LOC(i, j, k, _dom.Gfy.s1b, _dom.Gfy.s2b)];
+      s_w0[sc] = w0[GFZ_LOC(i, j, k, _dom.Gfz.s1b, _dom.Gfz.s2b)];
+      s_w1[sc] = w0[GFZ_LOC(i, j, k + 1, _dom.Gfz.s1b, _dom.Gfz.s2b)];
+    }
+    __syncthreads();
+
+    if((ti > 0 && ti < blockDim.x-1) && (tj > 0 && tj < blockDim.y-1) &&
+       (i >= _dom.Gcc._is && i <= _dom.Gcc._ie) &&
+       (j >= _dom.Gcc._js && j <= _dom.Gcc._je)) {
+
+      int SC = GCC_LOC(i, j, k, _dom.Gcc.s1b, _dom.Gcc.s2b);
+
+      real s111 = s_s1[sc];
+      real s011 = s_s1[(ti - 1) + tj*blockDim.y];
+      real s211 = s_s1[(ti + 1) + tj*blockDim.y];
+      real s101 = s_s1[ti + (tj - 1)*blockDim.y];
+      real s121 = s_s1[ti + (tj + 1)*blockDim.y];
+      real s110 = s_s0[sc];
+      real s112 = s_s2[sc];
+
+      real uu0 = s_u[sc];
+      real uu1 = s_u[(ti + 1) + tj*blockDim.y];
+      real vv0 = s_v[sc];
+      real vv1 = s_v[ti + (tj + 1)*blockDim.y];
+      real ww0 = s_w0[sc];
+      real ww1 = s_w1[sc];
 
       // calculate the convection term
-      conv_x = u0[fx1] * 0.5 * (s0[Cx1] + s0[C]) - u0[fx0] * 0.5 * (s0[C] + s0[Cx0]);
-      conv_x = conv_x / _dom.dx;
-      conv_y = v0[fy1] * 0.5 * (s0[Cy1] + s0[C]) - v0[fy0] * 0.5 * (s0[C] + s0[Cy0]);
-      conv_y = conv_y / _dom.dy;
-      conv_z = w0[fz1] * 0.5 * (s0[Cz1] + s0[C]) - w0[fz0] * 0.5 * (s0[C] + s0[Cz0]);
-      conv_z = conv_z / _dom.dz;  
-      conv[C] = conv_x + conv_y + conv_z;
+      real dusdx = uu1 * 0.5 * (s211 + s111) - uu0 * 0.5 * (s111 + s011);
+      dusdx *= ddx;
+      real dvsdy = vv1 * 0.5 * (s121 + s111) - vv0 * 0.5 * (s111 + s101);
+      dvsdy *= ddy;
+      real dwsdz = ww1 * 0.5 * (s112 + s111) - ww0 * 0.5 * (s111 + s110);
+      dwsdz *= ddz;
+      ss_conv = dusdx + dvsdy + dwsdz;
+      conv[SC] = ss_conv;
 
       // calculate the diffusion term
-      diff_x = D * (s0[Cx0] - 2.*s0[C] + s0[Cx1]) / _dom.dx / _dom.dx;
-      diff_y = D * (s0[Cy0] - 2.*s0[C] + s0[Cy1]) / _dom.dy / _dom.dy;
-      diff_z = D * (s0[Cz0] - 2.*s0[C] + s0[Cz1]) / _dom.dz / _dom.dz;
-      diff[C] = diff_x + diff_y + diff_z;
+      real ddsddx = D * (s211 - 2.*s111 + s011) * ddx * ddx;
+      real ddsddy = D * (s121 - 2.*s111 + s101) * ddy * ddy;
+      real ddsddz = D * (s112 - 2.*s111 + s110) * ddz * ddz;
+      ss_diff = ddsddx + ddsddy + ddsddz;
+      diff[SC] = ss_diff;
 
       // Adams-Bashforth
-      if(phase[C] == -1) {
-        if(dt0 > 0) {
-          s[C] = s0[C] + dt * (ab * diff[C] - ab0 * diff0[C] - (ab * conv[C] - ab0 * conv0[C]));
-        } else {
-          s[C] = s0[C] + dt * (diff[C] - conv[C]);
-        }
-      }
+      if(dt0 > 0)
+        ss = (ab*ss_diff - ab0*diff0[SC]) - (ab*ss_conv - ab0*conv0[SC]);
+      else
+        ss = ss_diff - ss_conv;
+      ss = s111 + dt * ss;
+      s[SC] += (ss - s[SC]) * (phase[SC] == -1);
     }
+    __syncthreads();
   }
 }
 
