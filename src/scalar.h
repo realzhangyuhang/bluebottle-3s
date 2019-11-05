@@ -472,6 +472,30 @@ void mpi_send_s_psums_k(void);
  ******
  */
 
+/****f* scalar/recorder_scalar_init()
+ * NAME
+ *  recorder_scalar_init()
+ * USAGE
+ */
+void recorder_scalar_init(char *name);
+/*
+ * FUNCTION
+ *  Initialize a scalar recorder
+ ******
+ */
+
+/****f* scalar/recorder_scalar()
+ * NAME
+ *  recorder_scalar()
+ * USAGE
+ */
+void recorder_scalar(char *name, int mniter, real mtimeiter, int sniter, real stimeiter);
+/*
+ * FUNCTION
+ *  Record momentum and scalar BC iteration information
+ ******
+ */
+
 /****f* scalar/cuda_scalar_malloc_host()
  * NAME
  *  cuda_scalar_malloc_host()

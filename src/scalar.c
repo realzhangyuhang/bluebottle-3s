@@ -20,6 +20,10 @@
  *  commercial and/or for-profit applications.
  ******************************************************************************/
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "scalar.h"
 
 BC_s bc_s;
@@ -216,4 +220,68 @@ void mpi_send_s_psums_k(void)
 
   // Free the info we provided
   MPI_Info_free(&no_locks);
+}
+
+void recorder_scalar_init(char *name)
+{
+  // create the file
+  if (rank == 0) {
+    // Create output directory if it doesn't exist
+    struct stat st = {0};
+    char buf[CHAR_BUF_SIZE];
+    sprintf(buf, "%s/record", ROOT_DIR);
+    if (stat(buf, &st) == -1) {
+      mkdir(buf, 0700);
+    }
+
+    char path[FILE_NAME_SIZE] = "";
+    sprintf(path, "%s/record/%s", ROOT_DIR, name);
+    FILE *rec = fopen(path, "w");
+    if(rec == NULL) {
+      fprintf(stderr, "Could not open file %s\n", name);
+      exit(EXIT_FAILURE);
+    }
+
+    fprintf(rec, "%-12s", "stepnum");
+    fprintf(rec, "%-10s", "mniter");
+    fprintf(rec, "%-15s", "mtimeiter");
+    fprintf(rec, "%-10s", "sniter");
+    fprintf(rec, "%-15s", "stimeiter");
+
+    // close the file
+    fclose(rec);
+  }
+}
+
+void recorder_scalar(char *name, int mniter, real mitertime, int sniter, real sitertime)
+{
+  // average over procs
+  MPI_Allreduce(MPI_IN_PLACE, &mitertime, 1, mpi_real, MPI_SUM, MPI_COMM_WORLD);
+  mitertime /= nprocs;
+  MPI_Allreduce(MPI_IN_PLACE, &sitertime, 1, mpi_real, MPI_SUM, MPI_COMM_WORLD);
+  sitertime /= nprocs;
+
+  // open the file
+  if (rank == 0) {
+    char path[FILE_NAME_SIZE] = "";
+    sprintf(path, "%s/record/%s", ROOT_DIR, name);
+    FILE *rec = fopen(path, "r+");
+    if(rec == NULL) {
+      recorder_scalar_init(name);
+      rec = fopen(path, "r+");
+    }
+
+    // move to the end of the file
+    fseek(rec, 0, SEEK_END);
+
+    fprintf(rec, "\n");
+    fprintf(rec, "%-12d", stepnum);
+    fprintf(rec, "%-10d", mniter);
+    fprintf(rec, "%-15e", mitertime);
+    fprintf(rec, "%-10d", sniter);
+    fprintf(rec, "%-15e", sitertime);
+
+    // close the file
+    fclose(rec);
+  }
 }

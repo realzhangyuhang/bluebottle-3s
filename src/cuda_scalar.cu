@@ -981,9 +981,7 @@ void printMemInfo()
     exit(1);
   }
 
-  printf("GPU memory usage: used = %.2f MB, free = %.2f MB, total = %.2f MB\n",
-    (double)(total_byte - free_byte)/mb,
-    (double)free_byte/mb,
-    (double)total_byte/mb);
-  printf("\n");
+  printf("N%d >> GPU memory usage: used = %.2f MB, free = %.2f MB, total = %.2f MB\n",
+    rank, (double)(total_byte - free_byte)/mb,
+    (double)free_byte/mb, (double)total_byte/mb);
 }

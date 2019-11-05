@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
       vtk_recorder_init();
     #endif
     recorder_PP_init("solver_expd.rec");
+    recorder_scalar_init("iter_etime.rec");
   }
 
   /* Deal with restart input */
@@ -144,6 +145,10 @@ int main(int argc, char *argv[])
   run_test();
 #else // TEST - Run normally
 
+  /* Before entering main loop, print device memory usage status of each device,
+   * this exclude the overhead and could include memory allocated from other program */
+//  printMemInfo();
+
   if (rank == 0) {
     printf("\n=====BLUEBOTTLE============================");
     printf("======================================\n");
@@ -170,6 +175,8 @@ int main(int argc, char *argv[])
     int iter = 0;             // Lamb's iteration counter
     int lambflag = 1;         // To continue or not after max iters
     real iter_err = FLT_MAX;  // Lamb's error
+    real mitertimestart = 0.;
+    real mitertimestop = 0.;
 
     if (rank == 0) {
       printf("\nEXPD: Time = %e of %e (dt = %e) (stepnum = %d).\n", ttime,
@@ -177,11 +184,7 @@ int main(int argc, char *argv[])
       fflush(stdout);
     }
 
-    /* monitoring device memory at the start of each timestep,
-     * this exclude the overhead and could include memory allocated from other program,*/
-    if (rank == 0) {
-      printMemInfo();
-    }
+    printMemInfo();
 
     /* Compute forcing and velocity boundary conditions */
     cuda_compute_forcing();
@@ -192,6 +195,7 @@ int main(int argc, char *argv[])
     compute_vel_BC();
 
     /* Iterate for Lamb's coefficients */
+    mitertimestart = MPI_Wtime();
     while (iter_err > lamb_residual) {
       if (rank == 0) printf("  Iteration %d: ", iter);
       //if (rank == 0) printf("  Iteration %d:\n", iter);
@@ -215,7 +219,6 @@ int main(int argc, char *argv[])
       cuda_solvability();
       if (nparts > 0) cuda_part_BC_star();
       cuda_dom_BC_star();
-
       mpi_cuda_exchange_Gfx(_u_star);
       mpi_cuda_exchange_Gfy(_v_star);
       mpi_cuda_exchange_Gfz(_w_star);
@@ -244,7 +247,7 @@ int main(int argc, char *argv[])
 
       /* update pressure */
       cuda_update_p();
-      if (nparts > 0) { 
+      if (nparts > 0) {
         cuda_part_BC();
         cuda_part_p_fill();
       }
@@ -270,6 +273,7 @@ int main(int argc, char *argv[])
         break;
       }
     } // End Lamb's iterations
+    mitertimestop = MPI_Wtime();
 
     // Deal with lamb's iterations convergence (or not)
     if (rank == 0) {
@@ -286,10 +290,13 @@ int main(int argc, char *argv[])
     }
 
     /***** Scalar inner iteration *****/
+    int scalar_iter = 0;
+    real scalar_iter_err = FLT_MAX;
+    real sitertimestart = 0.;
+    real sitertimestop = 0.;
     if (SCALAR >= 1) {
-      int scalar_iter = 0;
-      real scalar_iter_err = FLT_MAX;
 
+      sitertimestart = MPI_Wtime();
       while (scalar_iter_err > lamb_residual) {
         if (rank == 0) printf("  Iteration %d: ", scalar_iter);
         fflush(stdout);
@@ -321,6 +328,7 @@ int main(int argc, char *argv[])
           break;
         }
       }
+      sitertimestop = MPI_Wtime();
 
       if (rank == 0) {
         if (scalar_iter < lamb_max_iter) {
@@ -359,6 +367,10 @@ int main(int argc, char *argv[])
     /* Compute next time step size */
     dt0 = dt;
     cuda_find_dt();
+
+    /* Record info */
+    recorder_scalar("iter_etime.rec", iter, mitertimestop-mitertimestart,
+      scalar_iter, sitertimestop-sitertimestart);
 
     /* Output */
     #ifdef CGNS_OUTPUT

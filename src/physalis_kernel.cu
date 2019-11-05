@@ -1624,7 +1624,7 @@ __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
     //  order has a maximum, and we need to find the max over these
     if (coeff == 0) {
       for (int i = 0; i < ncoeffs_max; i++) {
-        max += (s_max[i] - max) * (s_max[i] > max);  
+        max += (s_max[i] - max) * (s_max[i] > max);
       }
       part_errors[part] = max;
     }

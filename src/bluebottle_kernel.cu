@@ -1655,7 +1655,7 @@ __global__ void calc_u_star(real rho_f, real nu, real *u0, real *v0, real *w0,
   /* Shared memory indices */
   int tj = threadIdx.x;
   int tk = threadIdx.y;
-  int sc = tj + tk*blockDim.x;  
+  int sc = tj + tk*blockDim.x;
 
   /* working constants */
   real ab0 = 0.5 * dt / dt0;   // for Adams-Bashforth stepping
@@ -2447,7 +2447,7 @@ __global__ void copy_u_square_noghost(real *u, real *utmp)
       int cc = GFX_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfx.s1, _dom.Gfx.s2);
 
-      utmp[cc] = u[CC]*u[CC];                        
+      utmp[cc] = u[CC]*u[CC];
     }
   }
 }
@@ -2463,7 +2463,7 @@ __global__ void copy_v_square_noghost(real *v, real *vtmp)
       int cc = GFY_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfy.s1, _dom.Gfy.s2);
 
-      vtmp[cc] = v[CC]*v[CC];                        
+      vtmp[cc] = v[CC]*v[CC];
     }
   }
 }
@@ -2479,7 +2479,7 @@ __global__ void copy_w_square_noghost(real *w, real *wtmp)
       int cc = GFZ_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfz.s1, _dom.Gfz.s2);
 
-      wtmp[cc] = w[CC]*w[CC];                        
+      wtmp[cc] = w[CC]*w[CC];
     }
   }
 }
@@ -2495,7 +2495,7 @@ __global__ void copy_u_noghost(real *u, real *utmp)
       int cc = GFX_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfx.s1, _dom.Gfx.s2);
 
-      utmp[cc] = u[CC];                        
+      utmp[cc] = u[CC];
     }
   }
 }
@@ -2511,7 +2511,7 @@ __global__ void copy_v_noghost(real *v, real *vtmp)
       int cc = GFY_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfy.s1, _dom.Gfy.s2);
 
-      vtmp[cc] = v[CC];                        
+      vtmp[cc] = v[CC];
     }
   }
 }
@@ -2527,7 +2527,7 @@ __global__ void copy_w_noghost(real *w, real *wtmp)
       int cc = GFZ_LOC(ti - DOM_BUF, tj - DOM_BUF, tk - DOM_BUF,
                         _dom.Gfz.s1, _dom.Gfz.s2);
 
-      wtmp[cc] = w[CC];                        
+      wtmp[cc] = w[CC];
     }
   }
 }

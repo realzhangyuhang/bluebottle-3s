@@ -864,7 +864,7 @@ real cuda_lamb_err(void)
     // create a place to store sorted coefficients and errors
     real *_part_errors;
     cudaMalloc((void**) &_part_errors, nparts*sizeof(real));
-    
+
     // sort the coefficients and calculate errors along the way
     dim3 numBlocks(nparts);
     dim3 dimBlocks(ncoeffs_max);
