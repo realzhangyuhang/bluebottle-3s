@@ -973,7 +973,6 @@ void printMemInfo()
 {
   size_t free_byte;
   size_t total_byte;
-  float mb = 1024*1024;
   cudaError_t cuda_status = cudaMemGetInfo(&free_byte, &total_byte);
 
   if(cudaSuccess != cuda_status) {
@@ -981,7 +980,7 @@ void printMemInfo()
     exit(1);
   }
 
-  printf("N%d >> GPU memory usage: used = %.2f MB, free = %.2f MB, total = %.2f MB\n",
-    rank, (double)(total_byte - free_byte)/mb,
-    (double)free_byte/mb, (double)total_byte/mb);
+  printf("N%d >> nparts = %d, nparts_subdom = %d, GPU memory usage: used = %zu B, free = %zu B, total = %zu B\n",
+    rank, nparts, nparts_subdom, (total_byte - free_byte), free_byte, total_byte);
+  fflush(stdout);
 }

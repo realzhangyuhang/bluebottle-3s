@@ -1383,8 +1383,8 @@ void cuda_move_parts_sub()
     /* Reset memory */
     checkCudaErrors(cudaMemset(_bin_start, -1, bins.Gcc.s3b * sizeof(int)));
     checkCudaErrors(cudaMemset(_bin_end, -1, bins.Gcc.s3b * sizeof(int)));
-    //checkCudaErrors(cudaMemset(_bin_count, 0, bins.Gcc.s3b * sizeof(int)));
-    //thrust::device_ptr<int> t_bin_count(_bin_count);
+    checkCudaErrors(cudaMemset(_bin_count, 0, bins.Gcc.s3b * sizeof(int)));
+    thrust::device_ptr<int> t_bin_count(_bin_count);
 
     /* Bin particles */
     bin_fill_k<<<num_nparts, dim_nparts>>>(_part_ind, _part_bin, _parts, nparts,
