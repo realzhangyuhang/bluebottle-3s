@@ -23,8 +23,8 @@
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ EDIT: DEPENDENCIES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 MPI_DIR = /project/cacds/apps/openmpi/3.1.2/gcc-cuda
-HDF5_DIR = /home/yzhang20/deps/phdf5
-CGNS_DIR = /home/yzhang20/deps/pcgns
+HDF5_DIR = /home/yzhang20/deps/hdf5-1.8.21
+CGNS_DIR = /home/yzhang20/deps/cgns-3.3.1
 CUDA_DIR = /project/cacds/apps/easybuild/software/CUDA/9.2.88
 CUDA_SDK_DIR = /project/cacds/apps/easybuild/software/CUDA/9.2.88/samples
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

@@ -1557,7 +1557,7 @@ __global__ void unpack_sums_b(real *sum_recv_b, int *offset, int *bin_start,
 }
 
 __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
-  part_struct *parts, real *part_errors)
+  part_struct *parts, real *part_errors, int *part_nums)
 {
   int part = blockIdx.x;
   int coeff = threadIdx.x;
@@ -1627,6 +1627,7 @@ __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
         max += (s_max[i] - max) * (s_max[i] > max);
       }
       part_errors[part] = max;
+      part_nums[part] = parts[part].N;
     }
   }
 }

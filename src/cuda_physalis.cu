@@ -856,36 +856,48 @@ void cuda_partial_sum_k(void)
 }
 
 extern "C"
-real cuda_lamb_err(void)
+void cuda_lamb_err(real *error, int *number)
 {
   //printf("N%d >> Determining Lamb's error\n", rank);
-  real error = DBL_MIN;
+  real err = DBL_MIN;
+  int num = -1;
+  struct {double err; int num;} data;
   if (nparts > 0) {
     // create a place to store sorted coefficients and errors
     real *_part_errors;
+    int *_part_nums;
     cudaMalloc((void**) &_part_errors, nparts*sizeof(real));
+    cudaMalloc((void**) &_part_nums, nparts*sizeof(int));
 
     // sort the coefficients and calculate errors along the way
     dim3 numBlocks(nparts);
     dim3 dimBlocks(ncoeffs_max);
 
     compute_error<<<numBlocks, dimBlocks>>>(lamb_cut, ncoeffs_max, nparts,
-     _parts, _part_errors);
+     _parts, _part_errors, _part_nums);
 
     // find maximum error of all particles
     thrust::device_ptr<real> t_part_errors(_part_errors);
-    error = thrust::reduce(t_part_errors,
-                           t_part_errors + nparts,
-                           0., thrust::maximum<real>());
+//    error = thrust::reduce(t_part_errors,
+//                           t_part_errors + nparts,
+//                           0., thrust::maximum<real>());
+    thrust::device_vector<real>::iterator iter = thrust::max_element(t_part_errors, t_part_errors + nparts);
+    int pos = thrust::device_pointer_cast(&iter[0]) - t_part_errors;
+    cudaMemcpy(&err, _part_errors + pos, sizeof(real), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&num, _part_nums + pos, sizeof(int), cudaMemcpyDeviceToHost);
+    data.err = err;
+    data.num = num;
 
     // clean up
     cudaFree(_part_errors);
+    cudaFree(_part_nums);
 
     // store copy of coefficients for future calculation
     store_coeffs<<<numBlocks, dimBlocks>>>(_parts, nparts, ncoeffs_max);
   }
 
-  // MPI reduce to find max error
-  MPI_Allreduce(MPI_IN_PLACE, &error, 1, mpi_real, MPI_MAX, MPI_COMM_WORLD);
-  return error;
+  // MPI reduce to find max error and its part number
+  MPI_Allreduce(MPI_IN_PLACE, &data, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  *error = data.err;
+  *number = data.num;
 }

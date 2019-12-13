@@ -738,7 +738,7 @@ __global__ void unpack_sums_b(real *sum_recv_b, int *offset, int *bin_start,
  * USAGE
  */
 __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
-  part_struct *parts, real *part_errors);
+  part_struct *parts, real *part_errors, int *part_nums);
 /*
  * PURPOSE
  *  Compute the error between the current and previous iteration Lamb's
@@ -750,6 +750,7 @@ __global__ void compute_error(real lamb_cut, int ncoeffs_max, int nparts,
  *  * nparts -- the total number of particles
  *  * parts -- particle info structure
  *  * part_errors -- the maximum error for each particle
+ *  * part_nums -- particle global number
  ******
 */
 

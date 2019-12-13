@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
     int iter = 0;             // Lamb's iteration counter
     int lambflag = 1;         // To continue or not after max iters
     real iter_err = FLT_MAX;  // Lamb's error
+    int iter_num = -1;
     real mitertimestart = 0.;
     real mitertimestop = 0.;
 
@@ -261,10 +262,10 @@ int main(int argc, char *argv[])
       }
 
       /* Calculate iteration error */
-      iter_err = cuda_lamb_err();
+      cuda_lamb_err(&iter_err, &iter_num);
 
       //if (rank == 0) printf("N%d >> Iteration %d error = %f\n\n", rank, iter, iter_err);
-      if (rank == 0) printf("  Error = %f\r", iter_err);
+      if (rank == 0) printf("  Error = %f(%d)\r", iter_err, iter_num);
       //if (rank == 0) printf("  Iteration %d error = %f\n\n", iter, iter_err);
 
       iter++;

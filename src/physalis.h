@@ -368,7 +368,7 @@ void cuda_lamb(void);
  *  cuda_lamb_err()
  * USAGE
  */
-real cuda_lamb_err(void);
+void cuda_lamb_err(real *error, int *num);
 /*
  * FUNCTION
  *  Compute the error between the current and previous sets of Lamb's
