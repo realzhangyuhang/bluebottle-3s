@@ -234,6 +234,7 @@ void domain_read_input(void)
   fret = fscanf(infile, "s_D %lf\n", &fbuf);
   fret = fscanf(infile, "s_k %lf\n", &fbuf);
   fret = fscanf(infile, "s_alpha %lf\n", &fbuf);
+  fret = fscanf(infile, "s_ref %lf\n", &fbuf);
   fret = fscanf(infile, "\n");
 
   fret = fscanf(infile, "SIMULATION PARAMETERS\n");

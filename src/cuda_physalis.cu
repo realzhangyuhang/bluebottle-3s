@@ -160,7 +160,7 @@ void cuda_lamb(void)
     check_nodes<<<num_parts, dim_nodes>>>(nparts, _parts, _bc, _DOM);
     interpolate_nodes<<<num_parts, dim_nodes>>>(_p, _u, _v, _w, rho_f, nu,
       gradP, _parts, _pp, _ur, _ut, _up, _bc,
-      s_alpha, s_init, g);
+      s_beta, s_ref, g);
 
     /* Create scalar product storage using max particle coefficient size */
     int sp_size = nparts * NNODES * ncoeffs_max;
@@ -207,7 +207,7 @@ void cuda_lamb(void)
     dim3 num_nparts(b_nparts);
 
     calc_forces<<<num_nparts, dim_nparts>>>(_parts, nparts, gradP.x, gradP.y,
-      gradP.z, rho_f, mu, nu, s_alpha, s_init, g);
+      gradP.z, rho_f, mu, nu, s_beta, s_ref, g);
 
     /* Free */
     checkCudaErrors(cudaFree(_int_Yp_re));

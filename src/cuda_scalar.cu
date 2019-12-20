@@ -148,9 +148,9 @@ void cuda_scalar_free(void)
 extern "C"
 void cuda_compute_boussinesq(void)
 {
-  forcing_boussinesq_x<<<blocks.Gfx.num_inb, blocks.Gfx.dim_inb>>>(s_alpha, g.x, s_init, _s, _f_x);
-  forcing_boussinesq_y<<<blocks.Gfy.num_jnb, blocks.Gfy.dim_jnb>>>(s_alpha, g.y, s_init, _s, _f_y);
-  forcing_boussinesq_z<<<blocks.Gfz.num_knb, blocks.Gfz.dim_knb>>>(s_alpha, g.z, s_init, _s, _f_z);
+  forcing_boussinesq_x<<<blocks.Gfx.num_inb, blocks.Gfx.dim_inb>>>(s_beta, g.x, s_ref, _s, _f_x);
+  forcing_boussinesq_y<<<blocks.Gfy.num_jnb, blocks.Gfy.dim_jnb>>>(s_beta, g.y, s_ref, _s, _f_y);
+  forcing_boussinesq_z<<<blocks.Gfz.num_knb, blocks.Gfz.dim_knb>>>(s_beta, g.z, s_ref, _s, _f_z);
 }
 
 extern "C"

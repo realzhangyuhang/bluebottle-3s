@@ -215,7 +215,7 @@ __global__ void check_nodes(int nparts, part_struct *parts, BC *bc,
 
 __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   real rho_f, real nu, gradP_struct gradP, part_struct *parts, real *pp,
-  real *ur, real *ut, real *up, BC *bc, real s_alpha, real s_init, g_struct g)
+  real *ur, real *ut, real *up, BC *bc, real s_beta, real s_ref, g_struct g)
 {
   int node = threadIdx.x;
   int part = blockIdx.x;
@@ -350,9 +350,9 @@ __global__ void interpolate_nodes(real *p, real *u, real *v, real *w,
   real ocrossr2 = (oy*zp - oz*yp) * (oy*zp - oz*yp);
   ocrossr2 += (ox*zp - oz*xp) * (ox*zp - oz*xp);
   ocrossr2 += (ox*yp - oy*xp) * (ox*yp - oy*xp);
-  real bousiq_x = -s_alpha*(parts[part].s - s_init)*g.x;
-  real bousiq_y = -s_alpha*(parts[part].s - s_init)*g.y;
-  real bousiq_z = -s_alpha*(parts[part].s - s_init)*g.z;
+  real bousiq_x = -s_beta*(parts[part].s - s_ref)*g.x;
+  real bousiq_y = -s_beta*(parts[part].s - s_ref)*g.y;
+  real bousiq_z = -s_beta*(parts[part].s - s_ref)*g.z;
   real accdotr = (-gradP.x * irho_f - udot + bousiq_x)*xp +
                  (-gradP.y * irho_f - vdot + bousiq_y)*yp +
                  (-gradP.z * irho_f - wdot + bousiq_z)*zp;
@@ -806,7 +806,7 @@ __global__ void compute_lambs_coeffs(part_struct *parts, real relax,
 
 __global__ void calc_forces(part_struct *parts, int nparts,
   real gradPx, real gradPy, real gradPz, real rho_f, real mu, real nu,
-  real s_alpha, real s_init, g_struct g)
+  real s_beta, real s_ref, g_struct g)
 {
   int pp = threadIdx.x + blockIdx.x*blockDim.x; // particle number
 
@@ -817,9 +817,9 @@ __global__ void calc_forces(part_struct *parts, int nparts,
     real N10 = sqrt(3./4./PI);
     real N11 = sqrt(3./8./PI);
 
-    real bousiq_x = -s_alpha*(parts[pp].s - s_init)*g.x;
-    real bousiq_y = -s_alpha*(parts[pp].s - s_init)*g.y;
-    real bousiq_z = -s_alpha*(parts[pp].s - s_init)*g.z;
+    real bousiq_x = -s_beta*(parts[pp].s - s_ref)*g.x;
+    real bousiq_y = -s_beta*(parts[pp].s - s_ref)*g.y;
+    real bousiq_z = -s_beta*(parts[pp].s - s_ref)*g.z;
 
     parts[pp].Fx = rho_f * vol * (parts[pp].udot + gradPx * irho_f - bousiq_x)
       - PI * mu * nu * 2.*N11 * (parts[pp].pnm_re[2]

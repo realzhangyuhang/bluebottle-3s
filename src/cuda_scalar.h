@@ -33,11 +33,11 @@ __global__ void BC_s_T_D(real *array, real bc_s);
 
 __global__ void BC_s_T_N(real *array, real bc_s);
 
-__global__ void forcing_boussinesq_x(real alpha, real gx, real s_init, real *s, real *fx);
+__global__ void forcing_boussinesq_x(real s_beta, real gx, real s_ref, real *s, real *fx);
 
-__global__ void forcing_boussinesq_y(real alpha, real gy, real s_init, real *s, real *fy);
+__global__ void forcing_boussinesq_y(real s_beta, real gy, real s_ref, real *s, real *fy);
 
-__global__ void forcing_boussinesq_z(real alpha, real gz, real s_init, real *s, real *fz);
+__global__ void forcing_boussinesq_z(real s_beta, real gz, real s_ref, real *s, real *fz);
 
 __global__ void scalar_solve(int *phase, real *s0, real *s,
   real *conv, real *diff, real *conv0, real *diff0,

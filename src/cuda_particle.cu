@@ -1680,14 +1680,14 @@ extern "C"
 void cuda_part_BC_p(void)
 {
   part_BC_p<<<blocks.Gcc.num_kn, blocks.Gcc.dim_kn>>>(_p0, _rhs_p, _phase,
-    _phase_shell, _parts, mu, nu, dt, dt0, gradP, rho_f, nparts, s_alpha, s_init, g);
+    _phase_shell, _parts, mu, nu, dt, dt0, gradP, rho_f, nparts, s_beta, s_ref, g);
 }
 
 extern "C"
 void cuda_part_p_fill(void)
 {
     part_BC_p_fill<<<blocks.Gcc.num_kn, blocks.Gcc.dim_kn>>>(_p, _phase, _parts,
-      mu, nu, rho_f, gradP, nparts, s_alpha, s_init, g);
+      mu, nu, rho_f, gradP, nparts, s_beta, s_ref, g);
 }
 
 extern "C"

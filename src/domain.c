@@ -165,13 +165,15 @@ void domain_read_input(void)
   fret = fscanf(infile, "nu %lf\n", &nu);
   fret = fscanf(infile, "s_D %lf\n", &s_D);
   fret = fscanf(infile, "s_k %lf\n", &s_k);
-  fret = fscanf(infile, "s_alpha %lf\n", &s_alpha);
+  fret = fscanf(infile, "s_beta %lf\n", &s_beta);
+  fret = fscanf(infile, "s_ref %lf\n", &s_ref);
 #else // single
   fret = fscanf(infile, "rho_f %f\n", &rho_f);
   fret = fscanf(infile, "nu %f\n", &nu);
   fret = fscanf(infile, "s_D %f\n", &s_D);
   fret = fscanf(infile, "s_k %f\n", &s_k);
-  fret = fscanf(infile, "s_alpha %f\n", &s_alpha);
+  fret = fscanf(infile, "s_beta %f\n", &s_beta);
+  fret = fscanf(infile, "s_ref %f\n", &s_ref);
 #endif
   mu = nu * rho_f;  // set dynamic viscosity
   fret = fscanf(infile, "\n");
@@ -1634,7 +1636,8 @@ void domain_write_config(void)
   fprintf(outfile, "  mu = %e\n", mu);
   fprintf(outfile, "  s_D = %e\n", s_D);
   fprintf(outfile, "  s_k = %e\n", s_k);
-  fprintf(outfile, "  s_alpha = %e\n", s_alpha);
+  fprintf(outfile, "  s_beta = %e\n", s_beta);
+  fprintf(outfile, "  s_ref = %e\n", s_ref);
   fprintf(outfile, "\n");
 
   fprintf(outfile, "Simulation Parameters:\n");

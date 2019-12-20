@@ -915,8 +915,7 @@ __global__ void part_BC_w(real *w, int *phase, int *flag_w,
  */
 __global__ void part_BC_p(real *p, real *p_rhs, int *phase, int *phase_shell,
   part_struct *parts, real mu, real nu, real dt, real dt0, gradP_struct gradP, 
-  real rho_f, int nparts, real s_alpha, real s_init,
-  g_struct g);
+  real rho_f, int nparts, real s_beta, real s_ref, g_struct g);
 /*
  * FUNCTION
  *  Apply pressure boundary condition to particle i. This routine uses the
@@ -943,7 +942,7 @@ __global__ void part_BC_p(real *p, real *p_rhs, int *phase, int *phase_shell,
  */
 __global__ void part_BC_p_fill(real *p, int *phase, part_struct *parts, real mu,
   real nu, real rho_f, gradP_struct gradP, int nparts,
-  real s_alpha, real s_init, g_struct g);
+  real s_beta, real s_ref, g_struct g);
 /*
  * FUNCTION
  *  Apply pressure boundary condition to particle i. This routine uses the

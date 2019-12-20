@@ -161,12 +161,12 @@ extern real s_k;
  ******
  */
 
-/****v* scalar/s_alpha
+/****v* scalar/s_beta
  * NAME
- *  s_alpha
+ *  s_beta
  * TYPE
  */
-extern real s_alpha;
+extern real s_beta;
 /*
  * PURPOSE
  *  The fluid thermal expansion coefficient.
@@ -222,6 +222,18 @@ extern real s_init_rand;
 /*
  * PURPOSE
  *  Fluctuation magnitude of initial fluid temperature.
+ ******
+ */
+
+/****v* scalar/s_ref
+ * NAME
+ *  s_ref
+ * TYPE
+ */
+extern real s_ref;
+/*
+ * PURPOSE
+ *  Reference fluid temperature, used in calculation of modified density.
  ******
  */
 

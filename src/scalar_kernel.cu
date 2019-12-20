@@ -157,7 +157,7 @@ __global__ void BC_s_T_N(real *array, real bc_s)
       array[GCC_LOC(ti + 1, tj + 1, _dom.Gcc._ke, s1b, s2b)] + _dom.dz*bc_s;
 }
 
-__global__ void forcing_boussinesq_x(real alpha, real gx, real s_init, real *s, real *fx)
+__global__ void forcing_boussinesq_x(real s_beta, real gx, real s_ref, real *s, real *fx)
 {
   int i, C0, C1;
   int tj = blockIdx.x * blockDim.x + threadIdx.x;
@@ -168,12 +168,12 @@ __global__ void forcing_boussinesq_x(real alpha, real gx, real s_init, real *s, 
       C0 = GCC_LOC(i-1, tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       C1 = GCC_LOC(i  , tj, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       fx[GFX_LOC(i, tj, tk, _dom.Gfx.s1b, _dom.Gfx.s2b)]
-        += - gx * alpha * (0.5*(s[C0]+s[C1]) - s_init);
+        += - gx * s_beta * (0.5*(s[C0]+s[C1]) - s_ref);
     }
   }
 }
 
-__global__ void forcing_boussinesq_y(real alpha, real gy, real s_init, real *s, real *fy)
+__global__ void forcing_boussinesq_y(real s_beta, real gy, real s_ref, real *s, real *fy)
 {
   int j, C0, C1;
   int tk = blockIdx.x * blockDim.x + threadIdx.x;
@@ -184,12 +184,12 @@ __global__ void forcing_boussinesq_y(real alpha, real gy, real s_init, real *s, 
       C0 = GCC_LOC(ti, j-1, tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       C1 = GCC_LOC(ti, j  , tk, _dom.Gcc.s1b, _dom.Gcc.s2b);
       fy[GFY_LOC(ti, j, tk, _dom.Gfy.s1b, _dom.Gfy.s2b)]
-        += - gy * alpha * (0.5*(s[C0]+s[C1]) - s_init);
+        += - gy * s_beta * (0.5*(s[C0]+s[C1]) - s_ref);
     }
   }
 }
 
-__global__ void forcing_boussinesq_z(real alpha, real gz, real s_init, real *s, real *fz)
+__global__ void forcing_boussinesq_z(real s_beta, real gz, real s_ref, real *s, real *fz)
 {
   int k, C0, C1;
   int ti = blockIdx.x * blockDim.x + threadIdx.x;
@@ -200,7 +200,7 @@ __global__ void forcing_boussinesq_z(real alpha, real gz, real s_init, real *s, 
       C0 = GCC_LOC(ti, tj, k-1, _dom.Gcc.s1b, _dom.Gcc.s2b);
       C1 = GCC_LOC(ti, tj, k  , _dom.Gcc.s1b, _dom.Gcc.s2b);
       fz[GFZ_LOC(ti, tj, k, _dom.Gfz.s1b, _dom.Gfz.s2b)]
-        += - gz * alpha * (0.5*(s[C0]+s[C1]) - s_init);
+        += - gz * s_beta * (0.5*(s[C0]+s[C1]) - s_ref);
     }
   }
 }
