@@ -243,18 +243,22 @@ void recorder_scalar_init(char *name)
       exit(EXIT_FAILURE);
     }
 
-    fprintf(rec, "%-12s", "stepnum");
+    fprintf(rec, "%-10s", "stepnum");
+    fprintf(rec, "%-12s", "ttime");
     fprintf(rec, "%-10s", "mniter");
-    fprintf(rec, "%-15s", "mtimeiter");
+    fprintf(rec, "%-12s", "mtimeiter");
+    fprintf(rec, "%-12s", "merriter");
     fprintf(rec, "%-10s", "sniter");
-    fprintf(rec, "%-15s", "stimeiter");
+    fprintf(rec, "%-12s", "stimeiter");
+    fprintf(rec, "%-12s", "serriter");
 
     // close the file
     fclose(rec);
   }
 }
 
-void recorder_scalar(char *name, int mniter, real mitertime, int sniter, real sitertime)
+void recorder_scalar(char *name, real ttime, int mniter, real mitertime,
+  real merr, int sniter, real sitertime, real serr)
 {
   // average over procs
   MPI_Allreduce(MPI_IN_PLACE, &mitertime, 1, mpi_real, MPI_SUM, MPI_COMM_WORLD);
@@ -276,11 +280,14 @@ void recorder_scalar(char *name, int mniter, real mitertime, int sniter, real si
     fseek(rec, 0, SEEK_END);
 
     fprintf(rec, "\n");
-    fprintf(rec, "%-12d", stepnum);
+    fprintf(rec, "%-10d", stepnum);
+    fprintf(rec, "%-12.2e", ttime);
     fprintf(rec, "%-10d", mniter);
-    fprintf(rec, "%-15e", mitertime);
+    fprintf(rec, "%-12.2e", mitertime);
+    fprintf(rec, "%-12.2e", merr);
     fprintf(rec, "%-10d", sniter);
-    fprintf(rec, "%-15e", sitertime);
+    fprintf(rec, "%-12.2e", sitertime);
+    fprintf(rec, "%-12.2e", serr);
 
     // close the file
     fclose(rec);

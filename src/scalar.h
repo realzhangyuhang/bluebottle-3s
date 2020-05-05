@@ -501,7 +501,8 @@ void recorder_scalar_init(char *name);
  *  recorder_scalar()
  * USAGE
  */
-void recorder_scalar(char *name, int mniter, real mtimeiter, int sniter, real stimeiter);
+void recorder_scalar(char *name, real ttime, int mniter, real mtimeiter,
+  real merr, int sniter, real stimeiter, real serr);
 /*
  * FUNCTION
  *  Record momentum and scalar BC iteration information

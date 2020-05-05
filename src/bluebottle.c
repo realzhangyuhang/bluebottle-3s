@@ -370,8 +370,8 @@ int main(int argc, char *argv[])
     cuda_find_dt();
 
     /* Record info */
-    recorder_scalar("iter_etime.rec", iter, mitertimestop-mitertimestart,
-      scalar_iter, sitertimestop-sitertimestart);
+    recorder_scalar("iter_etime.rec", ttime, iter, mitertimestop-mitertimestart,
+      iter_err, scalar_iter, sitertimestop-sitertimestart, scalar_iter_err);
 
     /* Output */
     #ifdef CGNS_OUTPUT

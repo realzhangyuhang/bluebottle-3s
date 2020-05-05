@@ -3165,6 +3165,69 @@ void in_restart(void)
 
   fread(parts, sizeof(part_struct), nparts_subdom, infile);
 
+
+  // check if "translating", "rotating" are changed in part.config
+  part_struct *PARTS;
+  PARTS = (part_struct*) malloc(NPARTS * sizeof(part_struct));
+
+  char ffname[FILE_NAME_SIZE] = "";
+  sprintf(ffname, "%s/%s/part.config", ROOT_DIR, INPUT_DIR);
+  FILE *partfile = fopen(ffname, "r");
+  if (partfile == NULL) {
+    fprintf(stderr, "Could not open file %s\n", ffname);
+    exit(EXIT_FAILURE);
+  }
+
+  if (NPARTS > 0) {
+    fscanf(partfile, "n %d\n", &NPARTS);
+    fscanf(partfile, "(l/a) %lf\n", &interaction_length_ratio);
+
+    for (int i = 0; i < NPARTS; i++) {
+      PARTS[i].N = i;
+      fscanf(partfile, "\n");
+      fscanf(partfile, "r %lf\n", &PARTS[i].r);
+      fscanf(partfile, "(x, y, z) %lf %lf %lf\n", &PARTS[i].x, &PARTS[i].y, &PARTS[i].z);
+      fscanf(partfile, "(u, v, w) %lf %lf %lf\n", &PARTS[i].u, &PARTS[i].v, &PARTS[i].w);
+      fscanf(partfile, "(aFx, aFy, aFz) %lf %lf %lf\n", &PARTS[i].aFx, &PARTS[i].aFy, &PARTS[i].aFz);
+      fscanf(partfile, "(aLx, aLy, aLz) %lf %lf %lf\n", &PARTS[i].aLx, &PARTS[i].aLy, &PARTS[i].aLz);
+      fscanf(partfile, "rho %lf\n", &PARTS[i].rho);
+      fscanf(partfile, "E %lf\n", &PARTS[i].E);
+      fscanf(partfile, "sigma %lf\n", &PARTS[i].sigma);
+      fscanf(partfile, "e_dry %lf\n", &PARTS[i].e_dry);
+      fscanf(partfile, "coeff_fric %lf\n", &PARTS[i].coeff_fric);
+      fscanf(partfile, "order %d\n", &PARTS[i].order);
+      fscanf(partfile, "rs/r %lf\n", &PARTS[i].rs);
+      fscanf(partfile, "spring_k %lf\n", &PARTS[i].spring_k);
+      fscanf(partfile, "spring (x, y, z) %lf %lf %lf\n", &PARTS[i].spring_x, &PARTS[i].spring_y, &PARTS[i].spring_z);
+      fscanf(partfile, "spring_l %lf\n", &PARTS[i].spring_l);
+      fscanf(partfile, "translating %d\n", &PARTS[i].translating);
+      fscanf(partfile, "rotating %d\n", &PARTS[i].rotating);
+      fscanf(partfile, "s %lf\n", &PARTS[i].s);
+      fscanf(partfile, "update %d\n", &PARTS[i].update);
+      fscanf(partfile, "cp %lf\n", &PARTS[i].cp);
+      fscanf(partfile, "rs %lf\n", &PARTS[i].srs);
+      fscanf(partfile, "s_order %d\n", &PARTS[i].sorder);
+    }
+  }
+
+  int wng = 1;
+  if (nparts > 0) {
+    for (int i = 0; i < nparts; i++) {
+      if (parts[i].translating != PARTS[parts[i].N].translating || parts[i].rotating != PARTS[parts[i].N].rotating) {
+        parts[i].translating = PARTS[parts[i].N].translating;
+        parts[i].rotating = PARTS[parts[i].N].rotating;
+        if (wng == 1) {
+          printf("N%d >> part moving updated\n", rank);
+          wng = 0;
+        }
+      }
+    }
+  }
+
+  free(PARTS);
+  fclose(partfile);
+
+
   fread(&ncoeffs_max, sizeof(int), 1, infile);
 
   fread(&pid_int, sizeof(real), 1, infile);
