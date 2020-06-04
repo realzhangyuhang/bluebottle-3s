@@ -3221,6 +3221,13 @@ void in_restart(void)
           wng = 0;
         }
       }
+      if (abs(parts[i].E - PARTS[parts[i].N].E) > 1e-6) {
+        parts[i].E = PARTS[parts[i].N].E;
+        if (wng == 1) {
+          printf("N%d >> part E updated\n", rank);
+          wng = 0;
+        }
+      }
     }
   }
 
