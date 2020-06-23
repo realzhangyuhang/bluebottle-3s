@@ -633,6 +633,9 @@ void cgns_particles(real dtout)
     real *iFx = malloc(nparts_subdom * sizeof(real)); // interaction
     real *iFy = malloc(nparts_subdom * sizeof(real));
     real *iFz = malloc(nparts_subdom * sizeof(real));
+    real *iLx = malloc(nparts_subdom * sizeof(real));
+    real *iLy = malloc(nparts_subdom * sizeof(real));
+    real *iLz = malloc(nparts_subdom * sizeof(real));
     real *hFx = malloc(nparts_subdom * sizeof(real)); // hydro
     real *hFy = malloc(nparts_subdom * sizeof(real));
     real *hFz = malloc(nparts_subdom * sizeof(real));
@@ -872,6 +875,9 @@ void cgns_particles(real dtout)
       iFx[n] = parts[n].iFx;
       iFy[n] = parts[n].iFy;
       iFz[n] = parts[n].iFz;
+      iLx[n] = parts[n].iLx;
+      iLy[n] = parts[n].iLy;
+      iLz[n] = parts[n].iLz;
       hFx[n] = parts[n].Fx;
       hFy[n] = parts[n].Fy;
       hFz[n] = parts[n].Fz;
@@ -1399,6 +1405,16 @@ void cgns_particles(real dtout)
     cgp_field_write(fn, bn, zn, sn, RealDouble, "InteractionForceZ", &fnr);
     cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, iFz);
 
+    // Interaction moment
+    cgp_field_write(fn, bn, zn, sn, RealDouble, "InteractionMomentX", &fnr);
+    cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, iLx);
+
+    cgp_field_write(fn, bn, zn, sn, RealDouble, "InteractionMomentY", &fnr);
+    cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, iLy);
+
+    cgp_field_write(fn, bn, zn, sn, RealDouble, "InteractionMomentZ", &fnr);
+    cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, iLz);
+
     // Hydro force
     cgp_field_write(fn, bn, zn, sn, RealDouble, "HydroForceX", &fnr);
     cgp_field_write_data(fn, bn, zn, sn, fnr, nstart, nend, hFx);
@@ -1874,6 +1890,9 @@ void cgns_particles(real dtout)
     free(iFx);
     free(iFy);
     free(iFz);
+    free(iLx);
+    free(iLy);
+    free(iLz);
     free(hFx);
     free(hFy);
     free(hFz);
